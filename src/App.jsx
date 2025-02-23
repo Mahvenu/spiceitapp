@@ -27,7 +27,7 @@ function App() {
         </Routes>
         
         <p>
-          Product Of VJkamps|
+          Product Of VJkamps!
         </p>
       </div>
       </Router>
