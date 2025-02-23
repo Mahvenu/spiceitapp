@@ -1,0 +1,26 @@
+/* Styling for the horizontal navigation */
+.spice-horizontal-nav {
+    list-style-type: none;  /* Remove default list styling */
+    padding: 0;  /* Remove any default padding */
+    margin: 0;   /* Remove default margin */
+    display: flex;  /* Flexbox for horizontal layout */
+  }
+  
+  .spice-horizontal-nav li {
+    margin-right: 20px; /* Space between the links */
+  }
+  
+  .spice-horizontal-nav li:last-child {
+    margin-right: 0;  /* Remove margin on the last item */
+  }
+  
+  .spice-horizontal-nav a {
+    text-decoration: none;  /* Remove underline */
+    color: #333;  /* Text color */
+    font-size: 16px;  /* Font size */
+  }
+  
+  .spice-horizontal-nav a:hover {
+    color: #007BFF;  /* Change text color on hover */
+  }
+  
