@@ -3,35 +3,41 @@ import './App.css';
 import './customstyles/spicenav.css';
 import Home from './corecomponents/Home';
 import { BrowserRouter as Router, Route, Routes, Link } from 'react-router-dom';
+import ContactUs from './corecomponents/ContactUs';
+import AboutUs from './corecomponents/AboutUs';
 
 function App() {
-  const [count, setCount] = useState(0)
-
+  
   return (
     <>
-    <Router>
-      <div>
-        <nav>
-          <ul className="spice-horizontal-nav">
-            <li>
-              <Link  to="/">Home</Link>
-            </li>
-            <li>
-              Contact Us
-            </li>
-          </ul>
-        </nav>
-        <Routes>
-          <Route path="/" element={<Home />} />
-          
-        </Routes>
-        
-        <p>
-          Product Of VJkamps!
-        </p>
-      </div>
+      <Router>
+        <div>
+          <nav>
+            <ul className="spice-horizontal-nav">
+              <li>
+                <Link to="/">Home</Link>
+              </li>
+              <li>
+              <Link to="/aboutus">About Us</Link>
+              </li>
+              <li>
+              <Link to="/contactus">Contact Us</Link>
+              </li>
+            </ul>
+          </nav>
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/aboutus" element={<AboutUs />} />
+            <Route path="/contactus" element={<ContactUs />} />
+          </Routes>
+          <footer>
+            <p>
+              Product Of VJkamps!
+            </p>
+          </footer>
+        </div>
       </Router>
-      
+
     </>
   );
 }

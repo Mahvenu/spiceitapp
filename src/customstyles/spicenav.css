@@ -4,10 +4,12 @@
     padding: 0;  /* Remove any default padding */
     margin: 0;   /* Remove default margin */
     display: flex;  /* Flexbox for horizontal layout */
+    background-color: #ffbf00;
   }
   
   .spice-horizontal-nav li {
     margin-right: 20px; /* Space between the links */
+    color: a30d807a;
   }
   
   .spice-horizontal-nav li:last-child {
