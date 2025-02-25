@@ -49,7 +49,7 @@ export default function Home() {
                         <tr key={product.productName}>
                             <td>{product.productName}</td>
                             <td>{product.qty}</td>
-                            <td>${product.price.toFixed(2)}</td>
+                            <td>Rs. {product.price.toFixed(2)}</td>
                         </tr>
                     ))}
                 </tbody>
