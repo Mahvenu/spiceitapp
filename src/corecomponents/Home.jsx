@@ -2,15 +2,13 @@ import axios from "axios";
 import React from "react";
 import { useEffect, useState } from "react";
 import '../customstyles/spiceprod.css';
-import '../images/Bisibelebath Powder.jpg'
-
 import { Container, Row, Col, Card, Button } from 'react-bootstrap';
 
 export default function Home() {
     const [products, setProducts] = useState([]); // State to store product data
     const [loading, setLoading] = useState(true); // State for loading status
     const [error, setError] = useState(null); // State for errors
-    const imageBasePath = 'src/images/';
+    const imageBasePath = 'images/';
     const getImagePath = (product) => `${imageBasePath}${product.productName}.jpg`;
     
     useEffect(() => {
