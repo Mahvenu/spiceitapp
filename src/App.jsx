@@ -32,7 +32,7 @@ function App() {
           </Routes>
           <footer>
             <p>
-              Product Of VJkamps!
+            © Product Of VJkamps!
             </p>
           </footer>
         </div>

@@ -1,11 +1,16 @@
 import axios from "axios";
 import React from "react";
 import { useEffect, useState } from "react";
-import '../customstyles/spiceprod.css'
+import '../customstyles/spiceprod.css';
+
+import { Container, Row, Col, Card, Button } from 'react-bootstrap';
+
 export default function Home() {
     const [products, setProducts] = useState([]); // State to store product data
     const [loading, setLoading] = useState(true); // State for loading status
     const [error, setError] = useState(null); // State for errors
+    const imageBasePath = 'src/images/';
+    const getImagePath = (product) => `${imageBasePath}${product.productName}.jpg`;
 
     useEffect(() => {
         const fetchProducts = async () => {
@@ -34,26 +39,31 @@ export default function Home() {
     }
 
     return (
-        <div className="product-list">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Name</th>
-                        <th>Quantity</th>
-                        <th>Price</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {/* Loop through the products and display them in the table */}
-                    {products.map((product) => (
-                        <tr key={product.productName}>
-                            <td>{product.productName}</td>
-                            <td>{product.qty}</td>
-                            <td>Rs. {product.price.toFixed(2)}</td>
-                        </tr>
-                    ))}
-                </tbody>
-            </table>
+        <div className="container">
+
+            <h1 className="my-4">Paaka Butti</h1>
+            <div className="card-container">
+                {products.map((product) => (
+                    <div key={product.productName} className="card">
+                        <img src={getImagePath(product)} alt={product.productName} className="card-image" />
+
+                        <div className="card-body">
+                            <h3>{product.productName}</h3>
+                            <p>{product.qty}</p>
+                            <p className="price">₹{product.price}</p>
+                            <button className="add-to-cart">Add to Cart</button>
+                        </div>
+                    </div>
+                ))}
+
+                {/* <h2>Cart ({cart.length} items)</h2>
+      <ul>
+        {cart.map((product, index) => (
+          <li key={index}>{product.productName} - ${product.price}</li>
+        ))}
+      </ul> */}
+
+            </div>
 
         </div>
     );

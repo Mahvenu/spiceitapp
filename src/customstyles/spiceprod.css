@@ -1,0 +1,104 @@
+.product-list {
+    padding: 20px;
+    background-color: #f9f9f9;
+  }
+  
+  .product-list h1 {
+    font-size: 2em;
+    text-align: center;
+  }
+  
+  .product-list ul {
+    list-style-type: none;
+    padding: 0;
+  }
+  
+  .product-list li {
+    background-color: white;
+    border: 1px solid #ddd;
+    margin: 10px 0;
+    padding: 15px;
+    border-radius: 8px;
+  }
+  
+  .product-list li h2 {
+    font-size: 1.5em;
+  }
+  
+  .product-list li p {
+    font-size: 1.2em;
+  }
+  
+  /* src/App.css */
+
+.container {
+  width: 90%;
+  margin: 0 auto;
+  padding: 20px;
+  text-align: center;
+}
+
+.title {
+  font-size: 2rem;
+  margin-bottom: 20px;
+}
+
+.card-container {
+  display: grid; /* Using grid for better control of card layout */
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px; /* Space between cards */
+}
+
+.card {
+  background-color: #fff;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  padding: 15px;
+  text-align: center;
+  transition: transform 0.3s ease-in-out;
+}
+
+.card:hover {
+  transform: translateY(-10px); /* Hover effect */
+}
+
+.card-image {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+}
+
+.card-body {
+  margin-top: 10px;
+}
+
+.card-body h3 {
+  font-size: 1.2rem;
+  margin-bottom: 10px;
+}
+
+.card-body p {
+  color: #555;
+  font-size: 1rem;
+}
+
+.price {
+  font-size: 1.2rem;
+  color: #007BFF;
+  font-weight: bold;
+}
+
+.add-to-cart {
+  margin-top: 10px;
+  padding: 10px 20px;
+  background-color: #007BFF;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.add-to-cart:hover {
+  background-color: #0056b3;
+}
