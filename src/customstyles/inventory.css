@@ -1,0 +1,30 @@
+.shopping-cart-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+  }
+  
+  .shopping-cart-table th, .shopping-cart-table td {
+    padding: 10px;
+    text-align: left;
+    border: 1px solid #ddd;
+  }
+  
+  .shopping-cart-table th {
+    background-color: #f2f2f2;
+  }
+  
+  .product-icon {
+    border-radius: 50%;
+  }
+  
+  .shopping-cart-table img {
+    width: 40px;
+    height: 40px;
+  }
+  
+  .shopping-cart-table td img {
+    width: 30px;
+    height: 30px;
+  }
+  

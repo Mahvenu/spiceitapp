@@ -5,6 +5,7 @@ import Home from './corecomponents/Home';
 import { BrowserRouter as Router, Route, Routes, Link } from 'react-router-dom';
 import ContactUs from './corecomponents/ContactUs';
 import AboutUs from './corecomponents/AboutUs';
+import ProductInventory from './corecomponents/ProductInventory';
 
 function App() {
   
@@ -18,6 +19,9 @@ function App() {
                 <Link to="/">Home</Link>
               </li>
               <li>
+              <Link to="/productinventory">Inventory</Link>
+              </li>
+              <li>
               <Link to="/aboutus">About Us</Link>
               </li>
               <li>
@@ -27,6 +31,7 @@ function App() {
           </nav>
           <Routes>
             <Route path="/" element={<Home />} />
+            <Route path="/productinventory" element={<ProductInventory />} />
             <Route path="/aboutus" element={<AboutUs />} />
             <Route path="/contactus" element={<ContactUs />} />
           </Routes>
