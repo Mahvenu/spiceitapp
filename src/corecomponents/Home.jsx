@@ -14,10 +14,9 @@ export default function Home() {
     useEffect(() => {
         const fetchProducts = async () => {
             try {
-                const prodInfoResp = await axios.get("https://r46jrehpue.execute-api.ap-south-1.amazonaws.com/spicedev?productName=chillipowder");
-                console.log("product response is ", prodInfoResp.data);
-                const jsonResp = JSON.parse(prodInfoResp.data)
-                setProducts(jsonResp);
+                const prodInfoResp = await axios.get("https://r46jrehpue.execute-api.ap-south-1.amazonaws.com/spicedev?service=productService");
+                console.log("product response is ", JSON.stringify(prodInfoResp.data, null, 2));
+                setProducts(prodInfoResp.data)
                 setLoading(false);
             } catch (err) {
                 console.error('Error occurred:', err); // Logs the error object
