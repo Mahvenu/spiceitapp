@@ -45,7 +45,6 @@ const ProductInventory = () => {
               <th>Unit Price</th>
               <th>Quantity</th>
               <th>Inventory Value</th>
-              
             </tr>
           </thead>
           <tbody>
@@ -54,8 +53,7 @@ const ProductInventory = () => {
                 <td>{item.productName}</td>
                 <td>₹{item.unitPrice}</td>
                 <td>{item.qyt}</td>
-                <td>₹{item.inventoryValue}</td> {/* Total price */}
-               
+                <td>₹{item.inventoryValue}</td>
               </tr>
             ))}
           </tbody>

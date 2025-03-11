@@ -29,7 +29,12 @@ function App() {
               <Link to="/contactus">Contact Us</Link>
               </li>
               <li>
-              <Link to="/shoppingcart">Shopping Cart</Link>
+              <Link to="/shoppingcart" >
+              <img src="images/Cart.jpg" alt= "getCartIconPath" className="cart-image"></img></Link>
+              </li>
+              <li className="spice-horizontal-nav-right">
+              <input type="text" placeholder="Search..." style={{ padding: "5px", borderRadius: "5px"}}
+              />
               </li>
             </ul>
           </nav>

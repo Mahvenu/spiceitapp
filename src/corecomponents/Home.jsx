@@ -10,6 +10,12 @@ export default function Home() {
     const [error, setError] = useState(null); // State for errors
     const imageBasePath = 'images/';
     const getImagePath = (product) => `${imageBasePath}${product.productName}.jpg`;
+    const [selected, setSelected] = useState("");
+    const handleChange = (event) => {
+          setSelected(event.target.value);
+          console.log("Selected:", event.target.value);
+        };
+    
     
     useEffect(() => {
         const fetchProducts = async () => {
@@ -49,6 +55,13 @@ export default function Home() {
                         <div className="card-body">
                             <h3>{product.productName}</h3>
                             <p>{product.qty}</p>
+                            <select value={selected} onChange={handleChange}>
+        <option value="">-- Choose --</option>
+        <option value="100gm">100 g</option>
+        <option value="250gm">250 g</option>
+        <option value="500gm">500 g</option>
+        <option value="1Kg">1 Kg</option>
+      </select>
                             <p className="price">₹{product.price}</p>
                             <button className="add-to-cart">Add to Cart</button>
                         </div>
