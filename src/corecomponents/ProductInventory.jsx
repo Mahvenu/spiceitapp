@@ -1,44 +1,45 @@
 import React, { useState, useEffect } from 'react';
+import axios from "axios";
 
 const ProductInventory = () => {
   const [cartItems, setCartItems] = useState([]); // To store fetched cart items
+  const [products, setProducts] = useState([]);
   const [error, setError] = useState(null); // For error handling
+  const [loading, setLoading] = useState(true); // State for loading status
 
   useEffect(() => {
-    // Assuming you have a cart API endpoint returning JSON data
-    const apiUrl = 'https://r46jrehpue.execute-api.ap-south-1.amazonaws.com/spicedev?service=productInventory';
-
-    // Fetch shopping cart data
-    fetch(apiUrl, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    })
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
+    const fetchProducts = async () => {
+        try {
+            const prodInfoResp = await axios.get("https://r46jrehpue.execute-api.ap-south-1.amazonaws.com/spicedev?service=productService");
+            console.log("product response is ", JSON.stringify(prodInfoResp.data, null, 2));
+            setProducts(prodInfoResp.data)
+            setLoading(false);
+        } catch (err) {
+            console.error('Error occurred:', err); // Logs the error object
+            console.error('Stack Trace:', err.stack);
+            setError(err.message); // Set error state if the request fails
+            setLoading(false); // Set loading to false on error
         }
-        return response.json(); // Parse the JSON data from response
-      })
-      .then((data) => {
-        setCartItems(data); // Assuming data.items is an array of cart items
-      })
-      .catch((err) => {
-        setError(err.message); // Handle any error
-      });
-  }, []); // Run only once on mount
+    };
+    fetchProducts();
+}, []);
+
+if (loading) {
+    return <div>Loading...</div>;
+}
+
+if (error) {
+    return <div>Error: {error}</div>;
+}
 
   return (
     <div>
-      <h1>Your Shopping Cart</h1>
+      <h1>Product Inventory Information</h1>
 
       {error && <div style={{ color: 'red' }}>Error: {error}</div>}
 
-      {cartItems.length === 0 ? (
-        <p>Your cart is empty.</p>
-      ) : (
-        <table className="shopping-cart-table">
+      {(
+        <table className="product-inventory-table">
           <thead>
             <tr>
               <th>Product</th>
@@ -49,18 +50,18 @@ const ProductInventory = () => {
             </tr>
           </thead>
           <tbody>
-            {cartItems.map((item, index) => (
-              <tr key={index}>
-                <td>{item.productName}</td>
-                <td>₹{item.unitPrice}</td>
-                <td>{item.qyt}</td>
-                <td>₹{item.inventoryValue}</td> {/* Total price */}
-               
+            {products.map((product) => (
+              <tr key={product.productName} >
+                <td>{product.productName}</td>
+                <td>₹{product.price}</td>
+                <td>{product.qty}gms.</td>
+                <td>₹{product.price*product.qty/1000}</td>
               </tr>
             ))}
           </tbody>
         </table>
       )}
+      <h4><button className="export">Export Report</button></h4>
     </div>
   );
 };
