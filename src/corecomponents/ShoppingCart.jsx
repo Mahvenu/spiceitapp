@@ -1,66 +1,64 @@
 import React, { useState, useEffect } from 'react';
 
 const ProductInventory = () => {
-  const [cartItems, setCartItems] = useState([]); // To store fetched cart items
-  const [error, setError] = useState(null); // For error handling
+  const [inventoryData, setInventoryData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  // const apiUrl = 'https://r46jrehpue.execute-api.ap-south-1.amazonaws.com/spicedev?service=productInventory';
+  const API_URL = 'https://gdhfo6zldj.execute-api.ap-south-1.amazonaws.com/dev/getInventory?service=inventory';
 
+  
   useEffect(() => {
-    // Assuming you have a cart API endpoint returning JSON data
-    const apiUrl = 'https://r46jrehpue.execute-api.ap-south-1.amazonaws.com/spicedev?service=productInventory';
-
-    // Fetch shopping cart data
-    fetch(apiUrl, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    })
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        return response.json(); // Parse the JSON data from response
+    fetch(API_URL)
+      .then((res) => {
+        if (!res.ok) throw new Error('Failed to fetch');
+        return res.json();
       })
-      .then((data) => {
-        setCartItems(data); // Assuming data.items is an array of cart items
+      .then((json) => {
+        // Parse if it's a stringified array
+        const data = typeof json === 'string' ? JSON.parse(json) : json;
+        setInventoryData(data);
+        setLoading(false);
       })
       .catch((err) => {
-        setError(err.message); // Handle any error
+        console.error('Error:', err);
+        setLoading(false);
       });
-  }, []); // Run only once on mount
+  }, []);
+
+  if (loading) return <p>Loading...</p>;
+  if (inventoryData.length === 0) return <p>No data available.</p>;
+
+  // Collect all unique keys across all inventory objects
+  const allKeys = Array.from(
+    new Set(inventoryData.flatMap(item => Object.keys(item.inventory)))
+  );
 
   return (
-    <div>
-      <h1>Your Shopping Cart</h1>
-
-      {error && <div style={{ color: 'red' }}>Error: {error}</div>}
-
-      {cartItems.length === 0 ? (
-        <p>Your cart is empty.</p>
-      ) : (
-        <table className="shopping-cart-table">
-          <thead>
-            <tr>
-              <th>Product</th>
-              <th>Unit Price</th>
-              <th>Quantity</th>
-              <th>Inventory Value</th>
-            </tr>
-          </thead>
-          <tbody>
-            {cartItems.map((item, index) => (
-              <tr key={index}>
-                <td>{item.productName}</td>
-                <td>₹{item.unitPrice}</td>
-                <td>{item.qyt}</td>
-                <td>₹{item.inventoryValue}</td>
-              </tr>
+    <div style={{ padding: 20 }}>
+      <h2>Inventory Table</h2>
+      <table border="1" cellPadding="8" style={{ borderCollapse: 'collapse', width: '100%' }}>
+        <thead>
+          <tr>
+            <th>Product ID</th>
+            {allKeys.map(key => (
+              <th key={key}>{key}</th>
             ))}
-          </tbody>
-        </table>
-      )}
+          </tr>
+        </thead>
+        <tbody>
+          {inventoryData.map((item, index) => (
+            <tr key={index}>
+              <td>{item.productId}</td>
+              {allKeys.map(key => (
+                <td key={key}>
+                  {item.inventory[key] !== undefined ? item.inventory[key].toString() : '-'}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 };
-
 export default ProductInventory;

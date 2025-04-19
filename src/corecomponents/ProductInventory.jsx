@@ -1,69 +1,64 @@
 import React, { useState, useEffect } from 'react';
-import axios from "axios";
 
 const ProductInventory = () => {
-  const [cartItems, setCartItems] = useState([]); // To store fetched cart items
-  const [products, setProducts] = useState([]);
-  const [error, setError] = useState(null); // For error handling
-  const [loading, setLoading] = useState(true); // State for loading status
+  const [inventoryData, setInventoryData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  // const apiUrl = 'https://r46jrehpue.execute-api.ap-south-1.amazonaws.com/spicedev?service=productInventory';
+  const API_URL = 'https://gdhfo6zldj.execute-api.ap-south-1.amazonaws.com/dev/getInventory?service=inventory';
 
+  
   useEffect(() => {
-    const fetchProducts = async () => {
-        try {
-            const prodInfoResp = await axios.get("https://r46jrehpue.execute-api.ap-south-1.amazonaws.com/spicedev?service=productService");
-            console.log("product response is ", JSON.stringify(prodInfoResp.data, null, 2));
-            setProducts(prodInfoResp.data)
-            setLoading(false);
-        } catch (err) {
-            console.error('Error occurred:', err); // Logs the error object
-            console.error('Stack Trace:', err.stack);
-            setError(err.message); // Set error state if the request fails
-            setLoading(false); // Set loading to false on error
-        }
-    };
-    fetchProducts();
-}, []);
+    fetch(API_URL)
+      .then((res) => {
+        if (!res.ok) throw new Error('Failed to fetch');
+        return res.json();
+      })
+      .then((json) => {
+        // Parse if it's a stringified array
+        const data = typeof json === 'string' ? JSON.parse(json) : json;
+        setInventoryData(data);
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error('Error:', err);
+        setLoading(false);
+      });
+  }, []);
 
-if (loading) {
-    return <div>Loading...</div>;
-}
+  if (loading) return <p>Loading...</p>;
+  if (inventoryData.length === 0) return <p>No data available.</p>;
 
-if (error) {
-    return <div>Error: {error}</div>;
-}
+  // Collect all unique keys across all inventory objects
+  const allKeys = Array.from(
+    new Set(inventoryData.flatMap(item => Object.keys(item.inventory)))
+  );
 
   return (
-    <div>
-      <h1>Product Inventory Information</h1>
-
-      {error && <div style={{ color: 'red' }}>Error: {error}</div>}
-
-      {(
-        <table className="product-inventory-table">
-          <thead>
-            <tr>
-              <th>Product</th>
-              <th>Unit Price</th>
-              <th>Quantity</th>
-              <th>Inventory Value</th>
-              
-            </tr>
-          </thead>
-          <tbody>
-            {products.map((product) => (
-              <tr key={product.productName} >
-                <td>{product.productName}</td>
-                <td>₹{product.price}</td>
-                <td>{product.qty}gms.</td>
-                <td>₹{product.price*product.qty/1000}</td>
-              </tr>
+    <div style={{ padding: 20 }}>
+      <h2>Inventory Table</h2>
+      <table border="1" cellPadding="8" style={{ borderCollapse: 'collapse', width: '100%' }}>
+        <thead>
+          <tr>
+            <th>Product ID</th>
+            {allKeys.map(key => (
+              <th key={key}>{key}</th>
             ))}
-          </tbody>
-        </table>
-      )}
-      <h4><button className="export">Export Report</button></h4>
+          </tr>
+        </thead>
+        <tbody>
+          {inventoryData.map((item, index) => (
+            <tr key={index}>
+              <td>{item.productId}</td>
+              {allKeys.map(key => (
+                <td key={key}>
+                  {item.inventory[key] !== undefined ? item.inventory[key].toString() : '-'}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 };
-
 export default ProductInventory;

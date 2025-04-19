@@ -15,7 +15,13 @@ export default function Home() {
           setSelected(event.target.value);
           console.log("Selected:", event.target.value);
         };
+    // State to manage the count of items in the cart
+      const [cartCount, setCartCount] = useState(0);
     
+      // Function to handle adding an item to the cart
+      const handleAddToCart = () => {
+        setCartCount(cartCount + 1); // Increment the cart count by 1
+      };
     
     useEffect(() => {
         const fetchProducts = async () => {
@@ -63,7 +69,11 @@ export default function Home() {
         <option value="1Kg">1 Kg</option>
       </select>
                             <p className="price">₹{product.price}</p>
-                            <button className="add-to-cart">Add to Cart</button>
+                            <button className="add-to-cart" onClick={handleAddToCart}>Add to Cart</button>
+                            {/* Display cart count only if it's greater than 0 */}
+        <span>
+        {cartCount > 0 }{cartCount } 
+        </span>
                         </div>
                     </div>
                 ))}

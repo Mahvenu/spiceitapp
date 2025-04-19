@@ -40,3 +40,20 @@
 .read-the-docs {
   color: #888;
 }
+.background {
+  height: 100vh;
+ /* background-image: url('/images/background.jpg');  /* Path relative to the public folder */
+  background-size: cover;
+  background-position: center;
+}
+
+h1 {
+  color: white;
+  text-align: center;
+}
+
+.cart-image {
+  position: 'relative';
+  margin-top: '20px';
+  cursor: pointer;
+}
