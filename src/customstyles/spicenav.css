@@ -4,7 +4,8 @@
     padding: 0;  /* Remove any default padding */
     margin: 0;   /* Remove default margin */
     display: flex;  /* Flexbox for horizontal layout */
-    background-color: #ffbf00;
+    /* background-color: #ffbf00; */
+    background-color: #64b374b0
   }
   
   .spice-horizontal-nav li {

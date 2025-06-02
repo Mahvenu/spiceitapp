@@ -7,6 +7,8 @@ import ContactUs from './corecomponents/ContactUs';
 import AboutUs from './corecomponents/AboutUs';
 import ProductInventory from './corecomponents/ProductInventory';
 import ShoppingCart from './corecomponents/ShoppingCart';
+import OrderPlacement from './corecomponents/OrderPlacement';
+import CustomerManagement from './corecomponents/CustomerManagement';
 
 function App() {
   
@@ -29,6 +31,12 @@ function App() {
               <Link to="/contactus">Contact Us</Link>
               </li>
               <li>
+              <Link to="/orderplacement">Order</Link>
+              </li>
+              <li>
+                <Link to="/customermanagement">Customer Management</Link>
+              </li>
+              <li>
               <Link to="/shoppingcart" >
               <img src="images/Cart.jpg" alt= "getCartIconPath" className="cart-image"></img></Link>
               </li>
@@ -36,6 +44,7 @@ function App() {
               <input type="text" placeholder="Search..." style={{ padding: "5px", borderRadius: "5px"}}
               />
               </li>
+              
             </ul>
           </nav>
           <Routes>
@@ -44,6 +53,8 @@ function App() {
             <Route path="/aboutus" element={<AboutUs />} />
             <Route path="/contactus" element={<ContactUs />} />
             <Route path="/shoppingcart" element={<ShoppingCart />} />
+            <Route path="/orderplacement" element={<OrderPlacement />} />
+            <Route path="/customermanagement" element={<CustomerManagement />} />
           </Routes>
           <footer>
             <p>

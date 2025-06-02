@@ -3,6 +3,10 @@ import React from "react";
 import { useEffect, useState } from "react";
 import '../customstyles/spiceprod.css';
 import { Container, Row, Col, Card, Button } from 'react-bootstrap';
+import CartDetails from "./CartDetails";
+import OverlayTrigger from 'react-bootstrap/OverlayTrigger';
+import Tooltip from 'react-bootstrap/Tooltip';
+import { FaShoppingCart } from "react-icons/fa";
 
 export default function Home() {
     const [products, setProducts] = useState([]); // State to store product data
@@ -11,22 +15,32 @@ export default function Home() {
     const imageBasePath = 'images/';
     const getImagePath = (product) => `${imageBasePath}${product.productName}.jpg`;
     const [selected, setSelected] = useState("");
+    
     const handleChange = (event) => {
           setSelected(event.target.value);
           console.log("Selected:", event.target.value);
         };
-    // State to manage the count of items in the cart
-      const [cartCount, setCartCount] = useState(0);
-    
-      // Function to handle adding an item to the cart
-      const handleAddToCart = () => {
-        setCartCount(cartCount + 1); // Increment the cart count by 1
-      };
-    
+
+    // Cart state: maps productId to quantity
+    const [cart, setCart] = useState({});
+    const [selectedQty, setSelectedQty] = useState({}); // Track selected qty per product
+    const [itemCount, setItemCount] = useState({}); // New state for number of items
+    const [showCart, setShowCart] = useState(false);
+
+    // Add to cart for a specific product
+    const handleAddToCart = (productId, qty) => {
+        const count = Number(itemCount[productId]) || 1;
+        setCart((prevCart) => ({
+            ...prevCart,
+            [productId]: (prevCart[productId] || 0) + count
+        }));
+    };
+
     useEffect(() => {
         const fetchProducts = async () => {
             try {
-                const prodInfoResp = await axios.get("https://r46jrehpue.execute-api.ap-south-1.amazonaws.com/spicedev?service=productService");
+                //const prodInfoResp = await axios.get("https://r46jrehpue.execute-api.ap-south-1.amazonaws.com/spicedev?service=productService");
+                const prodInfoResp = await axios.get("https://gdhfo6zldj.execute-api.ap-south-1.amazonaws.com/dev/getInventory?service=getInventory");
                 console.log("product response is ", JSON.stringify(prodInfoResp.data, null, 2));
                 setProducts(prodInfoResp.data)
                 setLoading(false);
@@ -48,45 +62,139 @@ export default function Home() {
         return <div>Error: {error}</div>;
     }
      
+    const cartSummary = Object.entries(cart)
+    .map(([productId, count]) => {
+        const product = products.find(p => p.productId === productId);
+        const name = product?.inventory?.Name || productId;
+        return `${name}: ${count}`;
+    })
+    .join('\n');
 
     return (
         <div className="container">
-
-            <h1 className="my-4">Paaka Butti</h1>
-            <div className="card-container">
-                {products.map((product) => (
-                    <div key={product.productName} className="card">
-                        <img src={getImagePath(product)} alt={product.productName} className="card-image" />
-
-                        <div className="card-body">
-                            <h3>{product.productName}</h3>
-                            <p>{product.qty}</p>
-                            <select value={selected} onChange={handleChange}>
-        <option value="">-- Choose --</option>
-        <option value="100gm">100 g</option>
-        <option value="250gm">250 g</option>
-        <option value="500gm">500 g</option>
-        <option value="1Kg">1 Kg</option>
-      </select>
-                            <p className="price">₹{product.price}</p>
-                            <button className="add-to-cart" onClick={handleAddToCart}>Add to Cart</button>
-                            {/* Display cart count only if it's greater than 0 */}
-        <span>
-        {cartCount > 0 }{cartCount } 
-        </span>
-                        </div>
-                    </div>
-                ))}
-
-                {/* <h2>Cart ({cart.length} items)</h2>
-      <ul>
-        {cart.map((product, index) => (
-          <li key={index}>{product.productName} - ${product.price}</li>
-        ))}
-      </ul> */}
-
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <h1 className="my-4">Paaka Butti</h1>
+                <OverlayTrigger
+                    placement="bottom"
+                    overlay={
+                        <Tooltip id="cart-tooltip">
+                            {cartSummary || "Cart is empty"}
+                        </Tooltip>
+                    }
+                >
+                    <button
+                        className="btn btn-outline-primary"
+                        style={{ position: "relative" }}
+                        onClick={() => setShowCart(true)}
+                    >
+                        <FaShoppingCart size={24} />
+                        {Object.values(cart).reduce((a, b) => a + Number(b), 0) > 0 && (
+                            <span style={{
+                                position: "absolute",
+                                top: "-8px",
+                                right: "-8px",
+                                background: "red",
+                                color: "white",
+                                borderRadius: "50%",
+                                padding: "2px 6px",
+                                fontSize: "12px"
+                            }}>
+                                {Object.values(cart).reduce((a, b) => a + Number(b), 0)}
+                            </span>
+                        )}
+                    </button>
+                </OverlayTrigger>
             </div>
-
+            {showCart ? (
+                <CartDetails cart={cart} products={products} onBack={() => setShowCart(false)} />
+            ) : (
+                <div className="card-container">
+                    {products.map((product) => {
+                        const inventory = product.inventory || {};
+                        const name = inventory.Name || product.productId;
+                        const qty = inventory.QtyInStock !== undefined ? `Qty: ${inventory.QtyInStock}` : '';
+                        const price = inventory.UnitPrice || 'N/A';
+                        const imageName = name.replace(/\s+/g, '') || product.productId;
+                        const availableQty = inventory.availableQty
+                            ? inventory.availableQty.split(',').map(q => q.trim())
+                            : ['50g', '100g', '250g', '500g', '1kg'];
+                        return (
+                            <div key={product.productId} className="card">
+                                <img
+                                    src={getImagePath({ productName: imageName })}
+                                    alt={name}
+                                    className="card-image"
+                                />
+                                <div className="card-body">
+                                    <h3>{name}</h3>
+                                    <p className="price">₹{price}</p>
+                                    <label>
+                                        
+                                        <select
+                                            value={selectedQty[product.productId] || availableQty[0]}
+                                            onChange={e =>
+                                                setSelectedQty({
+                                                    ...selectedQty,
+                                                    [product.productId]: e.target.value
+                                                })
+                                            }
+                                        >
+                                            {availableQty.map(q => (
+                                                <option key={q} value={q}>{q}</option>
+                                            ))}
+                                        </select>
+                                    </label>
+                                    <label style={{ marginLeft: "10px" }}>
+                                        <div style={{ display: "flex", alignItems: "center" }}>
+                                            <button
+                                                type="button"
+                                                className="btn btn-outline-secondary btn-sm"
+                                                style={{ minWidth: 32 }}
+                                                onClick={() =>
+                                                    setItemCount({
+                                                        ...itemCount,
+                                                        [product.productId]: Math.max(1, (Number(itemCount[product.productId]) || 1) - 1)
+                                                    })
+                                                }
+                                                disabled={(Number(itemCount[product.productId]) || 1) <= 1}
+                                            >-</button>
+                                            <span style={{ margin: "0 10px", minWidth: 20, textAlign: "center" }}>
+                                                {itemCount[product.productId] || 1}
+                                            </span>
+                                            <button
+                                                type="button"
+                                                className="btn btn-outline-secondary btn-sm"
+                                                style={{ minWidth: 32 }}
+                                                onClick={() =>
+                                                    setItemCount({
+                                                        ...itemCount,
+                                                        [product.productId]: (Number(itemCount[product.productId]) || 1) + 1
+                                                    })
+                                                }
+                                            >+</button>
+                                        </div>
+                                    </label>
+                                    <button
+                                        className="add-to-cart"
+                                        style={{ marginLeft: "10px" }}
+                                        onClick={() =>
+                                            handleAddToCart(
+                                                product.productId,
+                                                selectedQty[product.productId] || availableQty[0]
+                                            )
+                                        }
+                                    >
+                                        Add to Cart
+                                    </button>
+                                    {cart[product.productId] > 0 && (
+                                        <span className="cart-count">In Cart: {cart[product.productId]}</span>
+                                    )}
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            )}
         </div>
     );
-};
+}
