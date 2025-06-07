@@ -9,6 +9,7 @@ import ProductInventory from './corecomponents/ProductInventory';
 import ShoppingCart from './corecomponents/ShoppingCart';
 import OrderPlacement from './corecomponents/OrderPlacement';
 import CustomerManagement from './corecomponents/CustomerManagement';
+import Signup from './corecomponents/Signup';
 
 function App() {
   
@@ -48,7 +49,8 @@ function App() {
             </ul>
           </nav>
           <Routes>
-            <Route path="/" element={<Home />} />
+            <Route path="/" element={<Signup />} />
+            <Route path="/home" element={<Home />} />
             <Route path="/productinventory" element={<ProductInventory />} />
             <Route path="/aboutus" element={<AboutUs />} />
             <Route path="/contactus" element={<ContactUs />} />

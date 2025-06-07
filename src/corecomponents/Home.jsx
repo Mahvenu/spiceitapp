@@ -27,13 +27,38 @@ export default function Home() {
     const [itemCount, setItemCount] = useState({}); // New state for number of items
     const [showCart, setShowCart] = useState(false);
 
-    // Add to cart for a specific product
-    const handleAddToCart = (productId, qty) => {
-        const count = Number(itemCount[productId]) || 1;
-        setCart((prevCart) => ({
-            ...prevCart,
-            [productId]: (prevCart[productId] || 0) + count
-        }));
+    // Add to cart for a specific product and quantity
+    const handleAddToCart = (productId, qtyStr) => {
+        const key = `${productId}|${qtyStr}`;
+        const count = Number(itemCount[key]) || 1;
+        setCart(prevCart => {
+            const prevItem = prevCart[key] || { count: 0, qtyStr };
+            return {
+                ...prevCart,
+                [key]: {
+                    count: prevItem.count + count,
+                    qtyStr: qtyStr
+                }
+            };
+        });
+    };
+
+    // Remove/reduce from cart
+    const handleRemoveFromCart = (key) => {
+        setCart(prevCart => {
+            const item = prevCart[key];
+            if (!item) return prevCart;
+            if (item.count > 1) {
+                return {
+                    ...prevCart,
+                    [key]: { ...item, count: item.count - 1 }
+                };
+            } else {
+                const updatedCart = { ...prevCart };
+                delete updatedCart[key];
+                return updatedCart;
+            }
+        });
     };
 
     useEffect(() => {
@@ -62,13 +87,18 @@ export default function Home() {
         return <div>Error: {error}</div>;
     }
      
+    // Cart badge: sum all counts
+    const cartCount = Object.values(cart).reduce((a, b) => a + (b.count || 0), 0);
+
+    // Cart summary for tooltip
     const cartSummary = Object.entries(cart)
-    .map(([productId, count]) => {
-        const product = products.find(p => p.productId === productId);
-        const name = product?.inventory?.Name || productId;
-        return `${name}: ${count}`;
-    })
-    .join('\n');
+        .map(([key, item]) => {
+            const [productId, qtyStr] = key.split('|');
+            const product = products.find(p => p.productId === productId);
+            const name = product?.inventory?.Name || productId;
+            return `${name} (${qtyStr}): ${item.count}`;
+        })
+        .join('\n');
 
     return (
         <div className="container">
@@ -88,7 +118,7 @@ export default function Home() {
                         onClick={() => setShowCart(true)}
                     >
                         <FaShoppingCart size={24} />
-                        {Object.values(cart).reduce((a, b) => a + Number(b), 0) > 0 && (
+                        {cartCount > 0 && (
                             <span style={{
                                 position: "absolute",
                                 top: "-8px",
@@ -99,25 +129,30 @@ export default function Home() {
                                 padding: "2px 6px",
                                 fontSize: "12px"
                             }}>
-                                {Object.values(cart).reduce((a, b) => a + Number(b), 0)}
+                                {cartCount}
                             </span>
                         )}
                     </button>
                 </OverlayTrigger>
             </div>
             {showCart ? (
-                <CartDetails cart={cart} products={products} onBack={() => setShowCart(false)} />
+                <CartDetails
+                    cart={cart}
+                    products={products}
+                    onBack={() => setShowCart(false)}
+                    handleRemoveFromCart={handleRemoveFromCart}
+                />
             ) : (
                 <div className="card-container">
                     {products.map((product) => {
                         const inventory = product.inventory || {};
                         const name = inventory.Name || product.productId;
-                        const qty = inventory.QtyInStock !== undefined ? `Qty: ${inventory.QtyInStock}` : '';
                         const price = inventory.UnitPrice || 'N/A';
                         const imageName = name.replace(/\s+/g, '') || product.productId;
                         const availableQty = inventory.availableQty
                             ? inventory.availableQty.split(',').map(q => q.trim())
                             : ['50g', '100g', '250g', '500g', '1kg'];
+                        const selectedKey = `${product.productId}|${selectedQty[product.productId] || availableQty[0]}`;
                         return (
                             <div key={product.productId} className="card">
                                 <img
@@ -129,7 +164,6 @@ export default function Home() {
                                     <h3>{name}</h3>
                                     <p className="price">₹{price}</p>
                                     <label>
-                                        
                                         <select
                                             value={selectedQty[product.productId] || availableQty[0]}
                                             onChange={e =>
@@ -153,13 +187,13 @@ export default function Home() {
                                                 onClick={() =>
                                                     setItemCount({
                                                         ...itemCount,
-                                                        [product.productId]: Math.max(1, (Number(itemCount[product.productId]) || 1) - 1)
+                                                        [selectedKey]: Math.max(1, (Number(itemCount[selectedKey]) || 1) - 1)
                                                     })
                                                 }
-                                                disabled={(Number(itemCount[product.productId]) || 1) <= 1}
+                                                disabled={(Number(itemCount[selectedKey]) || 1) <= 1}
                                             >-</button>
                                             <span style={{ margin: "0 10px", minWidth: 20, textAlign: "center" }}>
-                                                {itemCount[product.productId] || 1}
+                                                {itemCount[selectedKey] || 1}
                                             </span>
                                             <button
                                                 type="button"
@@ -168,7 +202,7 @@ export default function Home() {
                                                 onClick={() =>
                                                     setItemCount({
                                                         ...itemCount,
-                                                        [product.productId]: (Number(itemCount[product.productId]) || 1) + 1
+                                                        [selectedKey]: (Number(itemCount[selectedKey]) || 1) + 1
                                                     })
                                                 }
                                             >+</button>
@@ -186,9 +220,17 @@ export default function Home() {
                                     >
                                         Add to Cart
                                     </button>
-                                    {cart[product.productId] > 0 && (
-                                        <span className="cart-count">In Cart: {cart[product.productId]}</span>
-                                    )}
+                                    {/* Show all cart entries for this product */}
+                                    {Object.entries(cart)
+                                        .filter(([key]) => key.startsWith(product.productId + "|"))
+                                        .map(([key, item]) => {
+                                            const [, qtyStr] = key.split('|');
+                                            return (
+                                                <span key={key} className="cart-count" style={{ display: "block" }}>
+                                                    In Cart: {qtyStr} × {item.count}
+                                                </span>
+                                            );
+                                        })}
                                 </div>
                             </div>
                         );

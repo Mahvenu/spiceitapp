@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from "axios";
 
-const ProductInventory = () => {
+const ProductInventory_old = () => {
   const [cartItems, setCartItems] = useState([]); // To store fetched cart items
   const [products, setProducts] = useState([]);
   const [error, setError] = useState(null); // For error handling
@@ -66,4 +66,4 @@ if (error) {
   );
 };
 
-export default ProductInventory;
+export default ProductInventory_old;

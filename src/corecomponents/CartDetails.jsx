@@ -1,9 +1,11 @@
 import React from "react";
+import { FaTrash } from "react-icons/fa";
 
-export default function CartDetails({ cart, products, onBack }) {
-    // cart: { [productId]: { qtyStr, count } }
+export default function CartDetails({ cart, products, onBack, handleRemoveFromCart }) {
+    // cart: { [productId|qtyStr]: { qtyStr, count } }
     const cartItems = Object.entries(cart)
-        .map(([productId, { qtyStr, count }]) => {
+        .map(([key, { qtyStr, count }]) => {
+            const [productId, qty] = key.split('|');
             const product = products.find(p => p.productId === productId);
             if (!product) return null;
             const inventory = product.inventory || {};
@@ -12,10 +14,10 @@ export default function CartDetails({ cart, products, onBack }) {
 
             // Convert qtyStr to grams
             let grams = 0;
-            if (qtyStr && qtyStr.toLowerCase().includes('kg')) {
-                grams = parseFloat(qtyStr) * 1000;
-            } else if (qtyStr && qtyStr.toLowerCase().includes('g')) {
-                grams = parseFloat(qtyStr);
+            if (qty && qty.toLowerCase().includes('kg')) {
+                grams = parseFloat(qty) * 1000;
+            } else if (qty && qty.toLowerCase().includes('g')) {
+                grams = parseFloat(qty);
             }
 
             // Calculate price for selected quantity
@@ -26,9 +28,10 @@ export default function CartDetails({ cart, products, onBack }) {
             const total = priceForSelectedQty * (count || 1);
 
             return {
+                key,
                 productId,
                 name,
-                qtyStr,
+                qtyStr: qty,
                 count,
                 priceForSelectedQty,
                 total
@@ -62,11 +65,12 @@ export default function CartDetails({ cart, products, onBack }) {
                                         <th style={{ width: "20%" }}>No. of Items</th>
                                         <th style={{ width: "15%" }}>Unit Price (₹)</th>
                                         <th style={{ width: "20%" }}>Total (₹)</th>
+                                        <th style={{ width: "10%" }}></th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {cartItems.map(item => (
-                                        <tr key={item.productId}>
+                                        <tr key={item.key}>
                                             <td style={{ verticalAlign: "middle" }}>{item.name}</td>
                                             <td style={{ verticalAlign: "middle" }}>
                                                 <span className="badge bg-secondary">{item.qtyStr}</span>
@@ -78,11 +82,21 @@ export default function CartDetails({ cart, products, onBack }) {
                                             <td style={{ verticalAlign: "middle" }}>
                                                 <strong>₹{item.total}</strong>
                                             </td>
+                                            <td style={{ verticalAlign: "middle" }}>
+                                                <button
+                                                    className="btn btn-outline-danger btn-sm"
+                                                    onClick={() => handleRemoveFromCart(item.key)}
+                                                    title={item.count > 1 ? "Reduce by 1" : "Remove from cart"}
+                                                >
+                                                    <FaTrash />
+                                                </button>
+                                            </td>
                                         </tr>
                                     ))}
                                     <tr>
                                         <td colSpan={4} className="text-end"><strong>Grand Total</strong></td>
                                         <td><strong>₹{grandTotal}</strong></td>
+                                        <td></td>
                                     </tr>
                                 </tbody>
                             </table>
