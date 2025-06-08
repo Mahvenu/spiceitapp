@@ -20,7 +20,7 @@ function App() {
           <nav>
             <ul className="spice-horizontal-nav">
               <li>
-                <Link to="/">Home</Link>
+                <Link to="/home">Home</Link>
               </li>
               <li>
               <Link to="/productinventory">Product Inventory</Link>
