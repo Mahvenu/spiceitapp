@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
-export default function Signup() {
+export default function SignUp() {
     const [form, setForm] = useState({
         firstName: "",
         lastName: "",
@@ -10,8 +10,6 @@ export default function Signup() {
         address: "",
         pincode: ""
     });
-    const [signin, setSignin] = useState({ email: "", phone: "" });
-    const [tab, setTab] = useState("signup");
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
     const googleBtn = useRef(null);
@@ -20,7 +18,7 @@ export default function Signup() {
     useEffect(() => {
         if (window.google && googleBtn.current) {
             window.google.accounts.id.initialize({
-                client_id: "YOUR_GOOGLE_CLIENT_ID", // Replace with your Google client ID
+                client_id: "YOUR_GOOGLE_CLIENT_ID",
                 callback: handleGoogleResponse
             });
             window.google.accounts.id.renderButton(googleBtn.current, {
@@ -51,10 +49,6 @@ export default function Signup() {
         setForm({ ...form, [e.target.name]: e.target.value });
     };
 
-    const handleSigninChange = e => {
-        setSignin({ ...signin, [e.target.name]: e.target.value });
-    };
-
     const handleSubmit = async e => {
         e.preventDefault();
         setError("");
@@ -70,10 +64,10 @@ export default function Signup() {
                 body: JSON.stringify(form)
             });
             if (res.ok) {
-                setSuccess("Signup successful! Redirecting...");
+                setSuccess("Signup successful! Redirecting to Login...");
                 localStorage.setItem("welcomeName", `${form.firstName} ${form.lastName}`);
                 setTimeout(() => {
-                    navigate("/home");
+                    navigate("/Signin");
                 }, 1200);
             } else {
                 setError("Signup failed. Please try again.");
@@ -83,179 +77,84 @@ export default function Signup() {
         }
     };
 
-    // Updated sign in logic to use the phone number API
-    const handleSignin = async e => {
-        e.preventDefault();
-        setError("");
-        setSuccess("");
-        if (!signin.phone) {
-            setError("Phone is required.");
-            return;
-        }
-        try {
-            const res = await fetch(
-                `https://d9umq22y9f.execute-api.ap-south-1.amazonaws.com/dev/checkSignin?service=getCustomerByPhone&phone=${encodeURIComponent(signin.phone)}`
-            );
-            if (!res.ok) {
-                setError("Sign in failed. Please try again.");
-                return;
-            }
-            const data = await res.json();
-            // data could be an object or array, adjust as per API response
-            let customer = null;
-            if (Array.isArray(data) && data.length > 0) {
-                customer = data[0];
-            } else if (data && typeof data === "object") {
-                customer = data;
-            }
-            if (
-                customer &&
-                (customer.email === signin.email || customer.email?.toLowerCase() === signin.email?.toLowerCase())
-            ) {
-                localStorage.setItem("welcomeName", `${customer.firstName || ""} ${customer.lastName || ""}`);
-                setSuccess("Sign in successful! Redirecting...");
-                setTimeout(() => {
-                    navigate("/home");
-                }, 1200);
-            } else {
-                setError("No matching customer found. Please check your details or sign up.");
-            }
-        } catch {
-            setError("Sign in failed. Please try again.");
-        }
-    };
-
     return (
         <div className="container my-4" style={{ maxWidth: 600 }}>
             <h2 className="mb-3">Welcome to Paaka Butti</h2>
-            <div className="mb-3">
-                <button
-                    className={`btn btn-${tab === "signup" ? "primary" : "outline-primary"} me-2`}
-                    onClick={() => setTab("signup")}
-                >
-                    Sign Up
-                </button>
-                <button
-                    className={`btn btn-${tab === "signin" ? "primary" : "outline-primary"}`}
-                    onClick={() => setTab("signin")}
-                >
-                    Sign In
-                </button>
-            </div>
-            {tab === "signup" ? (
-                <form className="row g-3 mb-3" onSubmit={handleSubmit}>
-                    <div className="col-md-6">
-                        <input
-                            type="text"
-                            className="form-control"
-                            name="firstName"
-                            placeholder="First Name"
-                            value={form.firstName}
-                            onChange={handleChange}
-                        />
-                    </div>
-                    <div className="col-md-6">
-                        <input
-                            type="text"
-                            className="form-control"
-                            name="lastName"
-                            placeholder="Last Name"
-                            value={form.lastName}
-                            onChange={handleChange}
-                        />
-                    </div>
-                    <div className="col-md-6">
-                        <input
-                            type="email"
-                            className="form-control"
-                            name="email"
-                            placeholder="Email"
-                            value={form.email}
-                            onChange={handleChange}
-                        />
-                    </div>
-                    <div className="col-md-6">
-                        <input
-                            type="text"
-                            className="form-control"
-                            name="phone"
-                            placeholder="Phone"
-                            value={form.phone}
-                            onChange={handleChange}
-                        />
-                    </div>
-                    <div className="col-md-8">
-                        <input
-                            type="text"
-                            className="form-control"
-                            name="address"
-                            placeholder="Address"
-                            value={form.address}
-                            onChange={handleChange}
-                        />
-                    </div>
-                    <div className="col-md-4">
-                        <input
-                            type="text"
-                            className="form-control"
-                            name="pincode"
-                            placeholder="Pincode"
-                            value={form.pincode}
-                            onChange={handleChange}
-                        />
-                    </div>
-                    <div className="col-12 d-flex align-items-center">
-                        <button type="submit" className="btn btn-primary me-3">Sign Up</button>
-                        <div ref={googleBtn}></div>
-                    </div>
-                    {error && (
-                        <div className="col-12">
-                            <div className="alert alert-danger py-1 my-1">{error}</div>
-                        </div>
-                    )}
-                    {success && (
-                        <div className="col-12">
-                            <div className="alert alert-success py-1 my-1">{success}</div>
-                        </div>
-                    )}
-                </form>
-            ) : (
-                <form className="row g-3 mb-3" onSubmit={handleSignin}>
-                    <div className="col-md-6">
-                        <input
-                            type="email"
-                            className="form-control"
-                            name="email"
-                            placeholder="Email"
-                            value={signin.email}
-                            onChange={handleSigninChange}
-                        />
-                    </div>
-                    <div className="col-md-6">
-                        <input
-                            type="text"
-                            className="form-control"
-                            name="phone"
-                            placeholder="Phone"
-                            value={signin.phone}
-                            onChange={handleSigninChange}
-                        />
-                    </div>
+            <form className="row g-3 mb-3" onSubmit={handleSubmit}>
+                <div className="col-md-6">
+                    <input
+                        type="text"
+                        className="form-control"
+                        name="firstName"
+                        placeholder="First Name"
+                        value={form.firstName}
+                        onChange={handleChange}
+                    />
+                </div>
+                <div className="col-md-6">
+                    <input
+                        type="text"
+                        className="form-control"
+                        name="lastName"
+                        placeholder="Last Name"
+                        value={form.lastName}
+                        onChange={handleChange}
+                    />
+                </div>
+                <div className="col-md-6">
+                    <input
+                        type="email"
+                        className="form-control"
+                        name="email"
+                        placeholder="Email"
+                        value={form.email}
+                        onChange={handleChange}
+                    />
+                </div>
+                <div className="col-md-6">
+                    <input
+                        type="text"
+                        className="form-control"
+                        name="phone"
+                        placeholder="Phone"
+                        value={form.phone}
+                        onChange={handleChange}
+                    />
+                </div>
+                <div className="col-md-8">
+                    <input
+                        type="text"
+                        className="form-control"
+                        name="address"
+                        placeholder="Address"
+                        value={form.address}
+                        onChange={handleChange}
+                    />
+                </div>
+                <div className="col-md-4">
+                    <input
+                        type="text"
+                        className="form-control"
+                        name="pincode"
+                        placeholder="Pincode"
+                        value={form.pincode}
+                        onChange={handleChange}
+                    />
+                </div>
+                <div className="col-12 d-flex align-items-center" style={{ marginTop: "24px" }}>
+                    <button type="submit" className="btn btn-primary me-3">Sign Up</button>
+                </div>
+                {error && (
                     <div className="col-12">
-                        <button type="submit" className="btn btn-primary">Sign In</button>
+                        <div className="alert alert-danger py-1 my-1">{error}</div>
                     </div>
-                    {error && (
-                        <div className="col-12">
-                            <div className="alert alert-danger py-1 my-1">{error}</div>
-                        </div>
-                    )}
-                    {success && (
-                        <div className="col-12">
-                            <div className="alert alert-success py-1 my-1">{success}</div>
-                        </div>
-                    )}
-                </form>
-            )}
+                )}
+                {success && (
+                    <div className="col-12">
+                        <div className="alert alert-success py-1 my-1">{success}</div>
+                    </div>
+                )}
+            </form>
         </div>
     );
 }

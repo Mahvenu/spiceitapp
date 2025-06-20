@@ -1,6 +1,5 @@
 import axios from "axios";
-import React from "react";
-import { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
 import '../customstyles/spiceprod.css';
 import { Container, Row, Col, Card, Button } from 'react-bootstrap';
 import CartDetails from "./CartDetails";
@@ -22,10 +21,15 @@ export default function Home() {
         };
 
     // Cart state: maps productId to quantity
-    const [cart, setCart] = useState({});
+    const [cart, setCart] = useState(() => {
+        const saved = sessionStorage.getItem("cart");
+        return saved ? JSON.parse(saved) : {};
+    });
     const [selectedQty, setSelectedQty] = useState({}); // Track selected qty per product
     const [itemCount, setItemCount] = useState({}); // New state for number of items
     const [showCart, setShowCart] = useState(false);
+    const [showPrompt, setShowPrompt] = useState(false);
+    const [promptMsg, setPromptMsg] = useState("");
 
     // Add to cart for a specific product and quantity
     const handleAddToCart = (productId, qtyStr) => {
@@ -41,6 +45,13 @@ export default function Home() {
                 }
             };
         });
+        // Find product name for prompt
+        const product = products.find(p => p.productId === productId);
+        const name = product?.inventory?.Name || productId;
+        // Show soft prompt with item name
+        setPromptMsg(`Added ${count} item${count > 1 ? "s" : ""} of ${name} (${qtyStr}) to cart!`);
+        setShowPrompt(true);
+        setTimeout(() => setShowPrompt(false), 1500);
     };
 
     // Remove/reduce from cart
@@ -79,6 +90,11 @@ export default function Home() {
         fetchProducts();
     }, []);
 
+    // Save cart to sessionStorage whenever it changes
+    useEffect(() => {
+        sessionStorage.setItem("cart", JSON.stringify(cart));
+    }, [cart]);
+
     if (loading) {
         return <div>Loading...</div>;
     }
@@ -102,6 +118,26 @@ export default function Home() {
 
     return (
         <div className="container">
+            {/* Soft prompt */}
+            {showPrompt && (
+                <div
+                    style={{
+                        position: "fixed",
+                        top: 20,
+                        right: 20,
+                        background: "#28a745",
+                        color: "white",
+                        padding: "12px 24px",
+                        borderRadius: "8px",
+                        boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+                        zIndex: 9999,
+                        fontWeight: "bold",
+                        fontSize: "1rem"
+                    }}
+                >
+                    {promptMsg}
+                </div>
+            )}
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                 <h1 className="my-4">Paaka Butti</h1>
                 <OverlayTrigger
@@ -162,7 +198,6 @@ export default function Home() {
                                 />
                                 <div className="card-body">
                                     <h3>{name}</h3>
-                                    <p className="price">₹{price}</p>
                                     <label>
                                         <select
                                             value={selectedQty[product.productId] || availableQty[0]}
@@ -172,14 +207,39 @@ export default function Home() {
                                                     [product.productId]: e.target.value
                                                 })
                                             }
+                                            style={{ marginRight: "10px" }}
                                         >
                                             {availableQty.map(q => (
-                                                <option key={q} value={q}>{q}</option>
+                                                <option key={q} value={q}>
+                                                    {q}
+                                                </option>
                                             ))}
                                         </select>
+                                        <span style={{ fontWeight: "bold", marginLeft: "8px" }}>
+                                            ₹{
+                                                (() => {
+                                                    const qtyStr = selectedQty[product.productId] || availableQty[0];
+                                                    const pricePerKg = Number(inventory.UnitPrice) || 0;
+                                                    let grams = 0;
+                                                    if (qtyStr.toLowerCase().includes('kg')) {
+                                                        grams = parseFloat(qtyStr) * 1000;
+                                                    } else if (qtyStr.toLowerCase().includes('g')) {
+                                                        grams = parseFloat(qtyStr);
+                                                    }
+                                                    return grams && pricePerKg
+                                                        ? Math.round((pricePerKg / 1000) * grams)
+                                                        : pricePerKg;
+                                                })()
+                                            }
+                                        </span>
                                     </label>
-                                    <label style={{ marginLeft: "10px" }}>
-                                        <div style={{ display: "flex", alignItems: "center" }}>
+                                    <label style={{ marginLeft: "10px", width: "100%" }}>
+                                        <div style={{
+                                            display: "flex",
+                                            alignItems: "center",
+                                            justifyContent: "center", // Center align horizontally
+                                            width: "100%"
+                                        }}>
                                             <button
                                                 type="button"
                                                 className="btn btn-outline-secondary btn-sm"
@@ -220,17 +280,54 @@ export default function Home() {
                                     >
                                         Add to Cart
                                     </button>
-                                    {/* Show all cart entries for this product */}
-                                    {Object.entries(cart)
-                                        .filter(([key]) => key.startsWith(product.productId + "|"))
-                                        .map(([key, item]) => {
-                                            const [, qtyStr] = key.split('|');
-                                            return (
-                                                <span key={key} className="cart-count" style={{ display: "block" }}>
-                                                    In Cart: {qtyStr} × {item.count}
+                                    {(() => {
+                                        const qtyStr = selectedQty[product.productId] || availableQty[0];
+                                        const key = `${product.productId}|${qtyStr}`;
+                                        const item = cart[key];
+                                        return item && item.count > 0 ? (
+                                            <span style={{
+                                                marginLeft: "12px",
+                                                display: "inline-flex",
+                                                alignItems: "center",
+                                                fontWeight: "bold",
+                                                fontSize: "1rem",
+                                                color: "#28a745"
+                                            }}>
+                                                Added
+                                                <span style={{
+                                                    display: "flex",
+                                                    justifyContent: "center",
+                                                    alignItems: "center",
+                                                    marginLeft: "6px",
+                                                    width: "18px",
+                                                    height: "18px",
+                                                    borderRadius: "50%",
+                                                    background: "#28a745",
+                                                    color: "white",
+                                                    textAlign: "center",
+                                                    fontWeight: "bold",
+                                                    fontSize: "0.75rem", // Even smaller font size
+                                                    lineHeight: "18px",
+                                                    verticalAlign: "middle"
+                                                }}>
+                                                    {item.count}
                                                 </span>
-                                            );
-                                        })}
+                                            </span>
+                                        ) : null;
+                                    })()}
+                                    {/* Show all cart entries for this product */}
+                                    {/* 
+{Object.entries(cart)
+    .filter(([key]) => key.startsWith(product.productId + "|"))
+    .map(([key, item]) => {
+        const [, qtyStr] = key.split('|');
+        return (
+            <span key={key} className="cart-count" style={{ display: "block" }}>
+                In Cart: {qtyStr} × {item.count}
+            </span>
+        );
+    })
+} */}
                                 </div>
                             </div>
                         );

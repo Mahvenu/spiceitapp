@@ -1,8 +1,11 @@
-import React from "react";
+import React, { useState } from "react";
 import { FaTrash } from "react-icons/fa";
+import { useNavigate } from "react-router-dom";
 
 export default function CartDetails({ cart, products, onBack, handleRemoveFromCart }) {
-    // cart: { [productId|qtyStr]: { qtyStr, count } }
+    const [orderPlaced, setOrderPlaced] = useState(false);
+    const navigate = useNavigate();
+
     const cartItems = Object.entries(cart)
         .map(([key, { qtyStr, count }]) => {
             const [productId, qty] = key.split('|');
@@ -41,6 +44,14 @@ export default function CartDetails({ cart, products, onBack, handleRemoveFromCa
 
     const grandTotal = cartItems.reduce((sum, item) => sum + item.total, 0);
 
+    const handlePlaceOrder = () => {
+        // You can add your order placement logic here (API call, etc.)
+        setOrderPlaced(true);
+        setTimeout(() => {
+            navigate("/orderplacement");
+        }, 1000);
+    };
+
     return (
         <div className="container my-4">
             <div className="card shadow-sm">
@@ -56,6 +67,7 @@ export default function CartDetails({ cart, products, onBack, handleRemoveFromCa
                             Your cart is empty.
                         </div>
                     ) : (
+                        <>
                         <div className="table-responsive">
                             <table className="table table-striped align-middle text-center" style={{ verticalAlign: "middle" }}>
                                 <thead className="table-light">
@@ -101,6 +113,16 @@ export default function CartDetails({ cart, products, onBack, handleRemoveFromCa
                                 </tbody>
                             </table>
                         </div>
+                        <div className="text-end mt-3">
+                            <button
+                                className="btn btn-success"
+                                onClick={handlePlaceOrder}
+                                disabled={orderPlaced}
+                            >
+                                {orderPlaced ? "Placing Order..." : "Place Order"}
+                            </button>
+                        </div>
+                        </>
                     )}
                 </div>
             </div>
