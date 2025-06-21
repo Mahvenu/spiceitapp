@@ -70,6 +70,7 @@ export default function SignIn() {
             }
             if (customer) {
                 localStorage.setItem("welcomeName", `${customer.firstName || ""} ${customer.lastName || ""}`);
+                window.dispatchEvent(new Event("storage")); // <-- Add this line
                 setSuccess("Sign in successful! Redirecting...");
                 setTimeout(() => {
                     navigate("/home");

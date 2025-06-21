@@ -45,6 +45,12 @@ export default function CartDetails({ cart, products, onBack, handleRemoveFromCa
     const grandTotal = cartItems.reduce((sum, item) => sum + item.total, 0);
 
     const handlePlaceOrder = () => {
+        // Check if user is logged in
+        const welcomeName = localStorage.getItem("welcomeName");
+        if (!welcomeName) {
+            navigate("/signin");
+            return;
+        }
         // You can add your order placement logic here (API call, etc.)
         setOrderPlaced(true);
         setTimeout(() => {
