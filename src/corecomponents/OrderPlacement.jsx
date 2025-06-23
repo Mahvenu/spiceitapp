@@ -18,11 +18,27 @@ export default function OrderPlacement() {
     });
     const [netbankingErrors, setNetbankingErrors] = useState({});
     const [cardErrors, setCardErrors] = useState({});
+    const [captchaValue, setCaptchaValue] = useState("");
+    const [captchaInput, setCaptchaInput] = useState("");
+    const [captchaError, setCaptchaError] = useState("");
+    const [deliveryMode, setDeliveryMode] = useState("delivery"); // "delivery" or "pickup"
+    const [addressType, setAddressType] = useState("permanent"); // "permanent" or "temporary"
+    const permanentAddress = localStorage.getItem("welcomeAddress") || "No address available";
+    const [tempAddress, setTempAddress] = useState("");
+    const [houseNo, setHouseNo] = useState("");
+    const [line1, setLine1] = useState("");
+    const [line2, setLine2] = useState("");
+    const [area, setArea] = useState("");
+    const [city, setCity] = useState("");
+    const [landmark, setLandmark] = useState("");
+    const [country, setCountry] = useState("");
+    const [showTempAddressSummary, setShowTempAddressSummary] = useState(false);
+    const [userPhone, setUserPhone] = useState(localStorage.getItem("welcomePhone") || ""); // New state for user phone
+    const [tempAddressList, setTempAddressList] = useState([]); // Add this state
     const navigate = useNavigate();
 
     // Get user info from localStorage (set during login/signup)
     const fullName = localStorage.getItem("welcomeName") || "Guest";
-    const address = localStorage.getItem("welcomeAddress") || "No address available";
 
     // Fetch products and cart only once, then compute cartItems after both are loaded
     useEffect(() => {
@@ -47,13 +63,19 @@ export default function OrderPlacement() {
         // Fetch user address details from backend as per login
         const fetchAddress = async () => {
             try {
-                const token = localStorage.getItem("authToken"); // or whatever your auth token key is
-                const resp = await axios.get("https://d9umq22y9f.execute-api.ap-south-1.amazonaws.com/dev/checkSignin?service=getCustomerByPhone&phone=7760156565", {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
+                const token = localStorage.getItem("authToken");
+                const resp = await axios.get(
+                    "https://d9umq22y9f.execute-api.ap-south-1.amazonaws.com/dev/checkSignin?service=getCustomerByPhone&phone=" +
+                    (localStorage.getItem("welcomePhone") || ""),
+                    { headers: { Authorization: `Bearer ${token}` } }
+                );
                 if (resp.data && resp.data.fullName && resp.data.address) {
                     localStorage.setItem("welcomeName", resp.data.fullName);
                     localStorage.setItem("welcomeAddress", resp.data.address);
+                }
+                // Save temp address list if available
+                if (resp.data && resp.data.tempAddressList && Array.isArray(resp.data.tempAddressList)) {
+                    setTempAddressList(resp.data.tempAddressList);
                 }
             } catch (err) {
                 // Optionally handle error
@@ -70,20 +92,39 @@ export default function OrderPlacement() {
             const items = Object.entries(cart)
                 .filter(([_, item]) => item.count > 0)
                 .map(([key, item]) => {
-                    const [productId, size] = key.split("|");
+                    const [productId, qtyStr] = key.split("|");
                     const product = products.find(p => p.productId === productId);
                     if (!product) return null;
                     const inventory = product.inventory || {};
                     const name = inventory.Name || productId;
-                    const price = Number(inventory.UnitPrice) || 0;
+                    const pricePerKg = Number(inventory.UnitPrice) || 0;
+
+                    // Convert qtyStr to grams
+                    let grams = 0;
+                    if (qtyStr && qtyStr.toLowerCase().includes('kg')) {
+                        grams = parseFloat(qtyStr) * 1000;
+                    } else if (qtyStr && qtyStr.toLowerCase().includes('g')) {
+                        grams = parseFloat(qtyStr);
+                    }
+
+                    // Calculate price for selected quantity (same as CartDetails)
+                    const priceForSelectedQty = grams && pricePerKg
+                        ? Math.round((pricePerKg / 1000) * grams)
+                        : pricePerKg;
+
+                    const count = typeof item.count !== "undefined" ? Number(item.count) : 0;
+                    const total = priceForSelectedQty * (count || 1);
+
                     const imageName = (inventory.Name || productId || "").replace(/\s+/g, "");
                     const imagePath = `/images/products/${imageName}.jpg`;
+
                     return {
                         key,
                         name,
-                        size,
-                        price,
-                        count: item.count,
+                        size: qtyStr,
+                        price: priceForSelectedQty,
+                        count,
+                        total,
                         imagePath
                     };
                 }).filter(Boolean);
@@ -91,37 +132,102 @@ export default function OrderPlacement() {
         }
     }, [loading, products]);
 
-    // Helper to update inventory after order
-    const updateInventory = async () => {
+    
+    // Add this function above your return statement
+    const handleOrderSubmit = async (e) => {
+        e.preventDefault();
+
+        // Build orderItems array from cartItems
+        const orderItems = cartItems.map(item => ({
+            productId: String(item.name), // Use product name as productId to match your sample
+            name: String(item.name),
+            quantity: String(item.size),
+            count: item.count,
+            unitPrice: item.price,
+            total: item.price * item.count
+        }));
+
+        // Build delivery address string
+        let deliveryAddress = "";
+        if (addressType === "permanent") {
+            deliveryAddress = String(permanentAddress);
+        } else {
+            deliveryAddress = [
+                houseNo, line1, line2, area, city,
+                landmark ? `Landmark: ${landmark}` : "",
+                tempAddress ? `Pincode: ${tempAddress}` : "",
+                country
+            ].filter(Boolean).join(", ");
+        }
+
+        // Build the order request object
+        const orderRequest = {
+            phoneNumber: String(userPhone),
+            orderItems,
+            addressType: String(addressType),
+            deliveryAddress: String(deliveryAddress),
+            deliveryMode: String(deliveryMode),
+            paymentMode: String(paymentTab),
+            orderTotal: cartTotal,
+            deliveryFee: deliveryFee,
+            grandTotal: grandTotal,
+            orderDate: new Date().toISOString()
+        };
+
         try {
-            for (const item of cartItems) {
-                await axios.post(
-                    "https://gdhfo6zldj.execute-api.ap-south-1.amazonaws.com/dev/updateInventory",
-                    {
-                        productId: item.key.split("|")[0],
-                        size: item.size,
-                        quantity: item.count,
-                        operation: "decrement"
-                    }
-                );
-            }
+            await axios.post(
+                "https://n5fpw7cag6.execute-api.ap-south-1.amazonaws.com/dev/placeOrder?service=placeOrder",
+                orderRequest,
+                { headers: { "Content-Type": "application/json" } }
+            );
+            sessionStorage.clear();
+            setTimeout(() => {
+                navigate("/ordersuccess");
+            }, 1000);
+        } catch (err) {
+            alert("Order placement failed. Please try again.");
+        }
+    };
+
+    // Generate a simple numeric captcha
+    const generateCaptcha = () => {
+        const value = Math.floor(1000 + Math.random() * 9000); // 4-digit number
+        setCaptchaValue(value.toString());
+    };
+
+    // On mount, generate the initial captcha
+    useEffect(() => {
+        generateCaptcha();
+    }, []);
+
+    // --- Add this helper above your return statement ---
+    const cartTotal = cartItems.reduce((sum, item) => sum + item.price * item.count, 0);
+    const deliveryFee = deliveryMode === "delivery" ? 20 : 0;
+    const grandTotal = cartTotal + deliveryFee;
+
+    if (loading) return <div>Loading...</div>;
+    if (error) return <div>Error: {error}</div>;
+
+    // New function to handle temporary address save
+    const handleTempAddressSave = async () => {
+        const addressStr = [
+            houseNo, line1, line2, area, city, landmark ? `Landmark: ${landmark}` : "", tempAddress ? `Pincode: ${tempAddress}` : "", country
+        ].filter(Boolean).join(", ");
+        try {
+            await axios.put(
+                "https://d9umq22y9f.execute-api.ap-south-1.amazonaws.com/dev/updateTempAddressList?service=updateTempAddressList",
+                {
+                    phone: userPhone,
+                    tempAddressList: [addressStr]
+                },
+                {
+                    headers: { "Content-Type": "application/json" }
+                }
+            );
         } catch (err) {
             // Optionally handle error
         }
     };
-
-    // Handler for order, clear session, and redirect to OrderSuccess page
-    const handleOrderSubmit = async (e) => {
-        e.preventDefault();
-        await updateInventory();
-        sessionStorage.clear();
-        setTimeout(() => {
-            navigate("/ordersuccess");
-        }, 1000);
-    };
-
-    if (loading) return <div>Loading...</div>;
-    if (error) return <div>Error: {error}</div>;
 
     return (
         <div className="container">
@@ -136,7 +242,7 @@ export default function OrderPlacement() {
             }}>
                 <div>
                     <div style={{ fontWeight: "bold", fontSize: "1.25rem" }}>{fullName}</div>
-                    <div style={{ color: "#555", marginTop: "6px", fontSize: "1rem" }}>{address}</div>
+                    {/* Removed permanentAddress display */}
                 </div>
                 <button
                     className="btn btn-outline-primary"
@@ -147,17 +253,234 @@ export default function OrderPlacement() {
                 </button>
             </div>
 
+            {/* --- Delivery Address Section --- */}
+            <div style={{
+                marginTop: "24px",
+                marginBottom: "16px",
+                padding: "18px 24px",
+                background: "#f8f9fa",
+                border: "1px solid #eee",
+                borderRadius: "8px"
+            }}>
+                <div style={{ fontWeight: "bold", fontSize: "1.1rem", marginBottom: "6px" }}>
+                    Delivery Address
+                </div>
+                <div style={{ marginBottom: "12px" }}>
+                    <label style={{ marginRight: "18px", fontWeight: 500 }}>
+                        <input
+                            type="radio"
+                            name="deliveryMode"
+                            value="delivery"
+                            checked={deliveryMode === "delivery"}
+                            onChange={() => setDeliveryMode("delivery")}
+                            style={{ marginRight: "6px" }}
+                        />
+                        Delivery
+                    </label>
+                    <label style={{ fontWeight: 500 }}>
+                        <input
+                            type="radio"
+                            name="deliveryMode"
+                            value="pickup"
+                            checked={deliveryMode === "pickup"}
+                            onChange={() => setDeliveryMode("pickup")}
+                            style={{ marginRight: "6px" }}
+                        />
+                        Pick Up
+                    </label>
+                </div>
+                {/* If delivery mode is delivery, ask for address type */}
+                {deliveryMode === "delivery" && (
+                    <div style={{ marginBottom: "12px" }}>
+                        <label style={{ marginRight: "18px", fontWeight: 500 }}>
+                            <input
+                                type="radio"
+                                name="addressType"
+                                value="permanent"
+                                checked={addressType === "permanent"}
+                                onChange={() => setAddressType("permanent")}
+                                style={{ marginRight: "6px" }}
+                            />
+                            Permanent Address
+                        </label>
+                        <label style={{ fontWeight: 500 }}>
+                            <input
+                                type="radio"
+                                name="addressType"
+                                value="temporary"
+                                checked={addressType === "temporary"}
+                                onChange={() => setAddressType("temporary")}
+                                style={{ marginRight: "6px" }}
+                            />
+                            Temporary Address
+                        </label>
+
+                        {/* Show temp address list if available and temporary is selected */}
+                        {addressType === "temporary" && tempAddressList.length > 0 && !showTempAddressSummary && (
+                            <div style={{ margin: "12px 0 12px 16px", background: "#f5f5f5", padding: "12px", borderRadius: "8px", width: "60%" }}>
+                                <div style={{ fontWeight: 500, marginBottom: "6px" }}>Saved Temporary Addresses:</div>
+                                <select
+                                    className="form-control"
+                                    style={{ width: "100%", marginBottom: "12px" }}
+                                    value={tempAddress}
+                                    onChange={e => {
+                                        setTempAddress(e.target.value);
+                                        // Optionally, parse and set other address fields if you want to auto-fill them
+                                    }}
+                                >
+                                    <option value="">-- Select a saved address --</option>
+                                    {tempAddressList.map((addr, idx) => (
+                                        <option key={idx} value={addr}>{addr}</option>
+                                    ))}
+                                </select>
+                                <div style={{ fontSize: ".95em", color: "#888" }}>
+                                    Or enter a new address below:
+                                </div>
+                            </div>
+                        )}
+
+                        {addressType === "temporary" && (
+                            <>
+                                {!showTempAddressSummary ? (
+                                    <>
+                                        <input
+                                            type="text"
+                                            className="form-control"
+                                            style={{ marginTop: "12px", marginBottom: "12px", width: "40%", marginLeft: "16px" }}
+                                            placeholder="Enter Zip Code"
+                                            value={tempAddress}
+                                            onChange={e => setTempAddress(e.target.value)}
+                                            required
+                                            maxLength={10}
+                                            pattern="[0-9]*"
+                                        />
+                                        {tempAddress === "560066" && (
+                                            <div style={{ marginTop: "12px", display: "flex", flexDirection: "column", gap: "12px", width: "60%", marginLeft: "16px" }}>
+                                                <input
+                                                    type="text"
+                                                    className="form-control"
+                                                    style={{ marginBottom: "12px" }}
+                                                    placeholder="House No"
+                                                    value={houseNo}
+                                                    onChange={e => setHouseNo(e.target.value)}
+                                                />
+                                                <input
+                                                    type="text"
+                                                    className="form-control"
+                                                    style={{ marginBottom: "12px" }}
+                                                    placeholder="Address Line 1"
+                                                    value={line1}
+                                                    onChange={e => setLine1(e.target.value)}
+                                                />
+                                                <input
+                                                    type="text"
+                                                    className="form-control"
+                                                    style={{ marginBottom: "12px" }}
+                                                    placeholder="Address Line 2"
+                                                    value={line2}
+                                                    onChange={e => setLine2(e.target.value)}
+                                                />
+                                                <input
+                                                    type="text"
+                                                    className="form-control"
+                                                    style={{ marginBottom: "12px" }}
+                                                    placeholder="Area"
+                                                    value={area}
+                                                    onChange={e => setArea(e.target.value)}
+                                                />
+                                                <input
+                                                    type="text"
+                                                    className="form-control"
+                                                    style={{ marginBottom: "12px" }}
+                                                    placeholder="City"
+                                                    value={city}
+                                                    onChange={e => setCity(e.target.value)}
+                                                />
+                                                <input
+                                                    type="text"
+                                                    className="form-control"
+                                                    style={{ marginBottom: "12px" }}
+                                                    placeholder="Nearest Landmark"
+                                                    value={landmark}
+                                                    onChange={e => setLandmark(e.target.value)}
+                                                />
+                                                <input
+                                                    type="text"
+                                                    className="form-control"
+                                                    style={{ marginBottom: "12px" }}
+                                                    placeholder="Country"
+                                                    value={country}
+                                                    onChange={e => setCountry(e.target.value)}
+                                                />
+                                                <button
+                                                    type="button"
+                                                    className="btn btn-success"
+                                                    style={{ marginTop: "12px", width: "160px", alignSelf: "flex-start" }}
+                                                    onClick={async () => {
+                                                        await handleTempAddressSave();
+                                                        setShowTempAddressSummary(true);
+                                                    }}
+                                                >
+                                                    Deliver Here
+                                                </button>
+                                            </div>
+                                        )}
+                                    </>
+                                ) : (
+                                    <div style={{ margin: "16px 0 12px 16px", background: "#f5f5f5", padding: "16px", borderRadius: "8px", display: "flex", alignItems: "center", justifyContent: "space-between", width: "80%" }}>
+                                        <div>
+                                            <div><strong>Address:</strong></div>
+                                            <div>
+                                                {houseNo && `${houseNo}, `}
+                                                {line1 && `${line1}, `}
+                                                {line2 && `${line2}, `}
+                                                {area && `${area}, `}
+                                                {city && `${city}, `}
+                                                {landmark && `Landmark: ${landmark}, `}
+                                                {tempAddress && `Pincode: ${tempAddress}, `}
+                                                {country}
+                                            </div>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            className="btn btn-outline-primary btn-sm"
+                                            style={{ marginLeft: "16px" }}
+                                            onClick={() => setShowTempAddressSummary(false)}
+                                        >
+                                            Change
+                                        </button>
+                                    </div>
+                                )}
+                            </>
+                        )}
+                    </div>
+                )}
+                <div style={{ color: "#333", fontSize: "1rem" }}>
+                    {deliveryMode === "delivery"
+                        ? (addressType === "permanent" ? permanentAddress : tempAddress || "Enter temporary address above")
+                        : (
+                            cartItems.some(item => {
+                                const product = products.find(p => p.productId === item.key.split("|")[0]);
+                                return product && product.inventory && Number(product.inventory.Stock) > 2;
+                            })
+                                ? "Pick up from store within 7 days"
+                                : "Pick up from store"
+                        )
+                    }
+                </div>
+            </div>
+
             {/* --- Cart Products Table Section --- */}
             <div style={{ marginTop: "32px" }}>
-                <h3>Products in Cart</h3>
+                <h3>Order Summary</h3>
                 {cartItems.length > 0 ? (
                     <table style={{ width: "100%", borderCollapse: "collapse", background: "#fafbfc" }}>
                         <thead>
                             <tr style={{ borderBottom: "1px solid #ddd" }}>
                                 {/* <th style={{ padding: "10px" }}>Image</th> */}
                                 <th style={{ padding: "10px" }}>Product</th>
-                                <th style={{ padding: "10px" }}>Size</th>
-                                <th style={{ padding: "10px" }}>Qty</th>
+                                <th style={{ padding: "10px" }}>Qty</th> {/* Renamed from Size to Qty */}
+                                <th style={{ padding: "10px" }}>Count</th>
                                 <th style={{ padding: "10px" }}>Unit Price (₹)</th>
                                 <th style={{ padding: "10px" }}>Total (₹)</th>
                             </tr>
@@ -174,7 +497,7 @@ export default function OrderPlacement() {
                                         />
                                     </td> */}
                                     <td style={{ padding: "10px", fontWeight: "bold" }}>{item.name}</td>
-                                    <td style={{ padding: "10px" }}>{item.size}</td>
+                                    <td style={{ padding: "10px" }}>{item.size}</td> {/* This is the pack size, now shown as Qty */}
                                     <td style={{ padding: "10px" }}>{item.count}</td>
                                     <td style={{ padding: "10px" }}>{item.price}</td>
                                     <td style={{ padding: "10px" }}>{item.price * item.count}</td>
@@ -185,6 +508,19 @@ export default function OrderPlacement() {
                 ) : (
                     <div style={{ color: "#888", fontStyle: "italic" }}>No products in cart.</div>
                 )}
+                <div style={{ marginTop: "18px", textAlign: "right", fontSize: "1.08rem" }}>
+                    <div>
+                        <span style={{ fontWeight: 500 }}>Subtotal:</span> ₹{cartTotal}
+                    </div>
+                    {deliveryMode === "delivery" && (
+                        <div>
+                            <span style={{ fontWeight: 500 }}>Delivery Fee:</span> ₹{deliveryFee}
+                        </div>
+                    )}
+                    <div style={{ fontWeight: "bold", fontSize: "1.15rem", marginTop: "6px" }}>
+                        Total: ₹{grandTotal}
+                    </div>
+                </div>
             </div>
 
             {/* --- Card Details Section --- */}
@@ -309,7 +645,7 @@ export default function OrderPlacement() {
                                 </div>
                             )}
                             <div className="row" style={{ gap: "12px" }}>
-                                <div className="col" style={{ marginBottom: "20px", display: "flex", alignItems: "center", gap: "16px" }}>
+                                <div className="col" style={{ marginBottom: "20px", display: "flex", alignItems: "center", gap: "96px" }}>
                                     <label className="form-label" style={{ minWidth: "60px", marginBottom: 0, textAlign: "left" }}>Expiry</label>
                                     <input
                                         type="text"
@@ -324,7 +660,7 @@ export default function OrderPlacement() {
                                         maxLength={5}
                                     />
                                 </div>
-                                <div className="col" style={{ marginBottom: "20px", display: "flex", alignItems: "center", gap: "16px" }}>
+                                <div className="col" style={{ marginBottom: "20px", display: "flex", alignItems: "center", gap: "97px" }}>
                                     <label className="form-label" style={{ minWidth: "60px", marginBottom: 0, textAlign: "left" }}>CVV</label>
                                     <input
                                         type="password"
@@ -465,9 +801,75 @@ export default function OrderPlacement() {
                         </form>
                     )}
                     {paymentTab === "cod" && (
-                        <div style={{ fontWeight: 500, fontSize: "1.1rem", marginTop: "12px" }}>
-                            Pay with cash when your order is delivered.
-                        </div>
+                        <form
+                            onSubmit={e => {
+                                e.preventDefault();
+                                if (captchaInput !== captchaValue) {
+                                    setCaptchaError("Invalid captcha. Please try again.");
+                                    return;
+                                }
+                                setCaptchaError("");
+                                // Directly navigate to success page
+                                sessionStorage.clear();
+                                setTimeout(() => {
+                                    navigate("/ordersuccess");
+                                }, 500);
+                            }}
+                            noValidate
+                        >
+                            <div style={{ fontWeight: 500, fontSize: "1.1rem", marginTop: "12px" }}>
+                                Pay with cash when your order is delivered.
+                            </div>
+                            <div style={{ marginTop: "24px", marginBottom: "16px", display: "flex", alignItems: "center", gap: "16px" }}>
+                                {/* Removed "Captcha:" label text */}
+                                <span
+                                    style={{
+                                        background: "#f5f5f5",
+                                        padding: "8px 16px",
+                                        borderRadius: "6px",
+                                        fontWeight: 600,
+                                        letterSpacing: "2px",
+                                        fontSize: "1.1rem",
+                                        userSelect: "none"
+                                    }}
+                                >
+                                    {captchaValue}
+                                </span>
+                                <input
+                                    type="text"
+                                    className="form-control"
+                                    style={{ width: "120px" }}
+                                    value={captchaInput}
+                                    onChange={e => setCaptchaInput(e.target.value)}
+                                    placeholder="Enter Captcha"
+                                    required
+                                />
+                                <button
+                                    type="button"
+                                    className="btn btn-outline-secondary btn-sm"
+                                    onClick={generateCaptcha}
+                                    style={{ marginLeft: "8px" }}
+                                    title="Refresh Captcha"
+                                >
+                                    ↻
+                                </button>
+                            </div>
+                            {captchaError && (
+                                <div style={{ color: "red", marginLeft: "80px", marginTop: "-12px", marginBottom: "8px", fontSize: ".95em" }}>
+                                    {captchaError}
+                                </div>
+                            )}
+                            <button
+                                type="submit"
+                                className="btn btn-primary"
+                                style={{
+                                    display: "block",
+                                    margin: "24px auto 0 auto"
+                                }}
+                            >
+                                Confirm Order
+                            </button>
+                        </form>
                     )}
                 </div>
             </div>

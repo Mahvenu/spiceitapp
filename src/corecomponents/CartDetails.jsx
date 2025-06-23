@@ -125,7 +125,7 @@ export default function CartDetails({ cart, products, onBack, handleRemoveFromCa
                                 onClick={handlePlaceOrder}
                                 disabled={orderPlaced}
                             >
-                                {orderPlaced ? "Placing Order..." : "Place Order"}
+                                {orderPlaced ? "Placing Order..." : "Proceed to Checkout"}
                             </button>
                         </div>
                         </>
