@@ -72,6 +72,7 @@ export default function SignIn() {
                 localStorage.setItem("welcomeName", `${customer.firstName || ""} ${customer.lastName || ""}`);
                 localStorage.setItem("welcomePhone", signin.phone);
                 localStorage.setItem("welcomeAddress", customer.address || ""); // <-- Add this line
+                sessionStorage.setItem("welcomePhone", customer.phone); // <-- Add this line
                 window.dispatchEvent(new Event("storage"));
                 setSuccess("Sign in successful! Redirecting...");
                 setTimeout(() => {
