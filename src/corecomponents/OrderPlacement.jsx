@@ -35,6 +35,9 @@ export default function OrderPlacement() {
     const [showTempAddressSummary, setShowTempAddressSummary] = useState(false);
     const [userPhone, setUserPhone] = useState(localStorage.getItem("welcomePhone") || ""); // New state for user phone
     const [tempAddressList, setTempAddressList] = useState([]); // Add this state
+    const [zipAutoFilled, setZipAutoFilled] = useState(false); // Add this state
+    const [confirmedAddress, setConfirmedAddress] = useState(""); // Add this state
+    const [zipDisabled, setZipDisabled] = useState(false); // Add this state
     const navigate = useNavigate();
 
     // Get user info from localStorage (set during login/signup)
@@ -291,8 +294,8 @@ export default function OrderPlacement() {
                 </div>
                 {/* If delivery mode is delivery, ask for address type */}
                 {deliveryMode === "delivery" && (
-                    <div style={{ marginBottom: "12px" }}>
-                        <label style={{ marginRight: "18px", fontWeight: 500 }}>
+                    <div style={{ marginBottom: "12px", display: "flex", alignItems: "center", gap: "18px" }}>
+                        <label style={{ marginRight: "18px", fontWeight: 500, display: "flex", alignItems: "center" }}>
                             <input
                                 type="radio"
                                 name="addressType"
@@ -303,7 +306,7 @@ export default function OrderPlacement() {
                             />
                             Permanent Address
                         </label>
-                        <label style={{ fontWeight: 500 }}>
+                        <label style={{ fontWeight: 500, display: "flex", alignItems: "center" }}>
                             <input
                                 type="radio"
                                 name="addressType"
@@ -313,146 +316,43 @@ export default function OrderPlacement() {
                                 style={{ marginRight: "6px" }}
                             />
                             Temporary Address
-                        </label>
-
-                        {/* Show temp address list if available and temporary is selected */}
-                        {addressType === "temporary" && tempAddressList.length > 0 && !showTempAddressSummary && (
-                            <div style={{ margin: "12px 0 12px 16px", background: "#f5f5f5", padding: "12px", borderRadius: "8px", width: "60%" }}>
-                                <div style={{ fontWeight: 500, marginBottom: "6px" }}>Saved Temporary Addresses:</div>
-                                <select
+                            {/* Zip code input next to Temporary Address radio */}
+                            {addressType === "temporary" && (
+                                <input
+                                    type="text"
                                     className="form-control"
-                                    style={{ width: "100%", marginBottom: "12px" }}
+                                    style={{ width: "120px", marginLeft: "12px" }}
                                     value={tempAddress}
                                     onChange={e => {
                                         setTempAddress(e.target.value);
-                                        // Optionally, parse and set other address fields if you want to auto-fill them
+                                        if (e.target.value.length === 6 && /^\d{6}$/.test(e.target.value)) {
+                                            // Only clear fields, do not set demo/default values
+                                            setHouseNo("");
+                                            setLine1("");
+                                            setLine2("");
+                                            setArea("");
+                                            setCity("");
+                                            setLandmark("");
+                                            setCountry("");
+                                            setZipAutoFilled(true);
+                                        } else {
+                                            setZipAutoFilled(false);
+                                            setHouseNo("");
+                                            setLine1("");
+                                            setLine2("");
+                                            setArea("");
+                                            setCity("");
+                                            setLandmark("");
+                                            setCountry("");
+                                        }
                                     }}
-                                >
-                                    <option value="">-- Select a saved address --</option>
-                                    {tempAddressList.map((addr, idx) => (
-                                        <option key={idx} value={addr}>{addr}</option>
-                                    ))}
-                                </select>
-                                <div style={{ fontSize: ".95em", color: "#888" }}>
-                                    Or enter a new address below:
-                                </div>
-                            </div>
-                        )}
-
-                        {addressType === "temporary" && (
-                            <>
-                                {!showTempAddressSummary ? (
-                                    <>
-                                        <input
-                                            type="text"
-                                            className="form-control"
-                                            style={{ marginTop: "12px", marginBottom: "12px", width: "40%", marginLeft: "16px" }}
-                                            placeholder="Enter Zip Code"
-                                            value={tempAddress}
-                                            onChange={e => setTempAddress(e.target.value)}
-                                            required
-                                            maxLength={10}
-                                            pattern="[0-9]*"
-                                        />
-                                        {tempAddress === "560066" && (
-                                            <div style={{ marginTop: "12px", display: "flex", flexDirection: "column", gap: "12px", width: "60%", marginLeft: "16px" }}>
-                                                <input
-                                                    type="text"
-                                                    className="form-control"
-                                                    style={{ marginBottom: "12px" }}
-                                                    placeholder="House No"
-                                                    value={houseNo}
-                                                    onChange={e => setHouseNo(e.target.value)}
-                                                />
-                                                <input
-                                                    type="text"
-                                                    className="form-control"
-                                                    style={{ marginBottom: "12px" }}
-                                                    placeholder="Address Line 1"
-                                                    value={line1}
-                                                    onChange={e => setLine1(e.target.value)}
-                                                />
-                                                <input
-                                                    type="text"
-                                                    className="form-control"
-                                                    style={{ marginBottom: "12px" }}
-                                                    placeholder="Address Line 2"
-                                                    value={line2}
-                                                    onChange={e => setLine2(e.target.value)}
-                                                />
-                                                <input
-                                                    type="text"
-                                                    className="form-control"
-                                                    style={{ marginBottom: "12px" }}
-                                                    placeholder="Area"
-                                                    value={area}
-                                                    onChange={e => setArea(e.target.value)}
-                                                />
-                                                <input
-                                                    type="text"
-                                                    className="form-control"
-                                                    style={{ marginBottom: "12px" }}
-                                                    placeholder="City"
-                                                    value={city}
-                                                    onChange={e => setCity(e.target.value)}
-                                                />
-                                                <input
-                                                    type="text"
-                                                    className="form-control"
-                                                    style={{ marginBottom: "12px" }}
-                                                    placeholder="Nearest Landmark"
-                                                    value={landmark}
-                                                    onChange={e => setLandmark(e.target.value)}
-                                                />
-                                                <input
-                                                    type="text"
-                                                    className="form-control"
-                                                    style={{ marginBottom: "12px" }}
-                                                    placeholder="Country"
-                                                    value={country}
-                                                    onChange={e => setCountry(e.target.value)}
-                                                />
-                                                <button
-                                                    type="button"
-                                                    className="btn btn-success"
-                                                    style={{ marginTop: "12px", width: "160px", alignSelf: "flex-start" }}
-                                                    onClick={async () => {
-                                                        await handleTempAddressSave();
-                                                        setShowTempAddressSummary(true);
-                                                    }}
-                                                >
-                                                    Deliver Here
-                                                </button>
-                                            </div>
-                                        )}
-                                    </>
-                                ) : (
-                                    <div style={{ margin: "16px 0 12px 16px", background: "#f5f5f5", padding: "16px", borderRadius: "8px", display: "flex", alignItems: "center", justifyContent: "space-between", width: "80%" }}>
-                                        <div>
-                                            <div><strong>Address:</strong></div>
-                                            <div>
-                                                {houseNo && `${houseNo}, `}
-                                                {line1 && `${line1}, `}
-                                                {line2 && `${line2}, `}
-                                                {area && `${area}, `}
-                                                {city && `${city}, `}
-                                                {landmark && `Landmark: ${landmark}, `}
-                                                {tempAddress && `Pincode: ${tempAddress}, `}
-                                                {country}
-                                            </div>
-                                        </div>
-                                        <button
-                                            type="button"
-                                            className="btn btn-outline-primary btn-sm"
-                                            style={{ marginLeft: "16px" }}
-                                            onClick={() => setShowTempAddressSummary(false)}
-                                        >
-                                            Change
-                                        </button>
-                                    </div>
-                                )}
-                            </>
-                        )}
+                                    required
+                                    maxLength={10}
+                                    pattern="[0-9]*"
+                                    disabled={zipDisabled}
+                                />
+                            )}
+                        </label>
                     </div>
                 )}
                 <div style={{ color: "#333", fontSize: "1rem" }}>
@@ -468,6 +368,107 @@ export default function OrderPlacement() {
                         )
                     }
                 </div>
+                {/* Immediately show address fields if zipAutoFilled is true */}
+                {deliveryMode === "delivery" && addressType === "temporary" && zipAutoFilled && !confirmedAddress && (
+                    <div style={{ marginTop: "10px", display: "flex", flexDirection: "column", gap: "10px" }}>
+                        <input
+                            type="text"
+                            className="form-control"
+                            style={{ width: "220px" }}
+                            placeholder="House No"
+                            value={houseNo}
+                            onChange={e => setHouseNo(e.target.value)}
+                        />
+                        <input
+                            type="text"
+                            className="form-control"
+                            style={{ width: "300px" }}
+                            placeholder="Address Line 1"
+                            value={line1}
+                            onChange={e => setLine1(e.target.value)}
+                        />
+                        <input
+                            type="text"
+                            className="form-control"
+                            style={{ width: "300px" }}
+                            placeholder="Address Line 2"
+                            value={line2}
+                            onChange={e => setLine2(e.target.value)}
+                        />
+                        <input
+                            type="text"
+                            className="form-control"
+                            style={{ width: "220px" }}
+                            placeholder="Area"
+                            value={area}
+                            onChange={e => setArea(e.target.value)}
+                        />
+                        <input
+                            type="text"
+                            className="form-control"
+                            style={{ width: "220px" }}
+                            placeholder="City"
+                            value={city}
+                            onChange={e => setCity(e.target.value)}
+                        />
+                        <input
+                            type="text"
+                            className="form-control"
+                            style={{ width: "220px" }}
+                            placeholder="Country"
+                            value={country}
+                            onChange={e => setCountry(e.target.value)}
+                        />
+                    </div>
+                )}
+                {/* Add Deliver Here button below address */}
+                {deliveryMode === "delivery" && (
+                    <>
+                        {!confirmedAddress ? (
+                            <button
+                                className="btn btn-success"
+                                style={{ margin: "12px 0 0 0" }}
+                                onClick={() => {
+                                    // Build the address string based on address type
+                                    let address = "";
+                                    if (addressType === "permanent") {
+                                        address = permanentAddress;
+                                    } else {
+                                        address = [
+                                            houseNo, line1, line2, area, city,
+                                            landmark ? `Landmark: ${landmark}` : "",
+                                            tempAddress ? `Pincode: ${tempAddress}` : "",
+                                            country
+                                        ].filter(Boolean).join(", ");
+                                    }
+                                    setConfirmedAddress(address);
+                                    setZipDisabled(true); // Disable zip code input
+                                }}
+                                type="button"
+                            >
+                                Deliver Here
+                            </button>
+                        ) : (
+                            <div style={{ marginTop: "14px", background: "#e6f7e6", padding: "10px 16px", borderRadius: "6px", color: "#155724", fontWeight: 500, display: "flex", alignItems: "center", gap: "16px" }}>
+                                <span>Delivery Address: </span>
+                                <span>{confirmedAddress}</span>
+                                {addressType === "temporary" && (
+                                    <button
+                                        className="btn btn-link"
+                                        style={{ marginLeft: "16px", color: "#007bff", textDecoration: "underline", fontWeight: 500, padding: 0 }}
+                                        onClick={() => {
+                                            setConfirmedAddress("");
+                                            setZipDisabled(false); // Enable zip code input
+                                        }}
+                                        type="button"
+                                    >
+                                        Change
+                                    </button>
+                                )}
+                            </div>
+                        )}
+                    </>
+                )}
             </div>
 
             {/* --- Cart Products Table Section --- */}
@@ -886,6 +887,8 @@ export default function OrderPlacement() {
 
             NETBANKING TAB VALIDATIONS
             - Select Bank: Required (dropdown must not be empty).
+            - Account Holder: Required, only letters and spaces allowed.
+            - Account Number: Required, must be 8-20 digits.
             - Account Holder: Required, only letters and spaces allowed.
             - Account Number: Required, must be 8-20 digits.
             - IFSC Code: Required, must match standard IFSC format (e.g., SBIN0123456).

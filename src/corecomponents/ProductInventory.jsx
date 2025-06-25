@@ -4,6 +4,7 @@ const ProductInventory = () => {
   const [inventoryData, setInventoryData] = useState([]);
   const [newItem, setNewItem] = useState({ productId: '', inventory: {} });
   const [loading, setLoading] = useState(true);
+  const [successMsg, setSuccessMsg] = useState('');
   // const apiUrl = 'https://r46jrehpue.execute-api.ap-south-1.amazonaws.com/spicedev?service=productInventory';
   const API_URL = 'https://gdhfo6zldj.execute-api.ap-south-1.amazonaws.com/dev/getInventory?service=inventory';
   const API_BASE = 'https://gdhfo6zldj.execute-api.ap-south-1.amazonaws.com/dev/';
@@ -42,14 +43,21 @@ const handleInputChange = (productId, key, value) => {
   );
 };
 
-const handleSave = (item) => {
+const handleSave = (item, isNew = false) => {
   fetch(`${API_BASE}/saveInventory?service=saveInventory`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(item),
   })
     .then((res) => res.json())
-    .then(() => alert('Saved successfully!'))
+    .then(() => {
+      setSuccessMsg('Saved successfully!');
+      setTimeout(() => setSuccessMsg(''), 2000);
+      if (isNew) {
+        setInventoryData(prev => [...prev, item]);
+        setNewItem({ productId: '', inventory: {} });
+      }
+    })
     .catch((err) => console.error('Save error:', err));
 };
 
@@ -65,9 +73,7 @@ const handleDelete = (productId) => {
 
 const handleAddNew = () => {
   if (!newItem.productId) return alert('Product ID is required');
-  setInventoryData([...inventoryData, newItem]);
-  setNewItem({ productId: '', inventory: {} });
-  handleSave(newItem);
+  handleSave(newItem, true); // Pass a flag to indicate it's a new item
 };
 
 const handleNewItemChange = (key, value) => {
@@ -82,6 +88,10 @@ if (loading) return <p>Loading...</p>;
 return (
   <div style={{ padding: 20 }}>
     <h2>Inventory Management</h2>
+
+    {successMsg && (
+      <div style={{ color: 'green', marginBottom: 10 }}>{successMsg}</div>
+    )}
 
     <table border="1" cellPadding="8" style={{ borderCollapse: 'collapse', width: '100%' }}>
       <thead>

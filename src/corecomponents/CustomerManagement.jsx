@@ -62,8 +62,10 @@ export default function CustomerManagement() {
     };
 
     const handleDelete = id => {
-        setCustomers(customers.filter(c => c.id !== id));
-        // Optionally, call an API to delete customer here
+        if (window.confirm("Are you sure you want to delete this customer?")) {
+            setCustomers(customers.filter(c => c.id !== id));
+            // Optionally, call an API to delete customer here
+        }
     };
 
     return (
