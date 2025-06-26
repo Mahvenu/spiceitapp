@@ -13,6 +13,9 @@ import CustomerManagement from './corecomponents/CustomerManagement';
 import SignUp from './corecomponents/Signup';
 import SignIn from './corecomponents/Signin';
 import UserInfo from './corecomponents/UserInfo';
+import { FaShoppingCart } from "react-icons/fa";
+import OverlayTrigger from 'react-bootstrap/OverlayTrigger';
+import Tooltip from 'react-bootstrap/Tooltip';
 
 // Move all logic that uses useNavigate into this inner component
 function AppContent() {
@@ -21,6 +24,8 @@ function AppContent() {
     return fullName ? fullName.split(" ")[0] : "Login";
   });
   const [showDropdown, setShowDropdown] = useState(false);
+  const [cartCount, setCartCount] = useState(0);
+  const [cartSummary, setCartSummary] = useState("");
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -142,8 +147,41 @@ function AppContent() {
               </div>
             )}
           </li>
+          <li className="spice-horizontal-nav-right">
+            <OverlayTrigger
+              placement="bottom"
+              overlay={
+                <Tooltip id="cart-tooltip">
+                  {cartSummary || "Cart is empty"}
+                </Tooltip>
+              }
+            >
+              <button
+                className="btn btn-outline-primary"
+                style={{ position: "relative" }}
+                onClick={() => navigate("/shoppingcart")}
+              >
+                <FaShoppingCart size={24} />
+                {cartCount > 0 && (
+                  <span style={{
+                    position: "absolute",
+                    top: "-8px",
+                    right: "-8px",
+                    background: "red",
+                    color: "white",
+                    borderRadius: "50%",
+                    padding: "2px 6px",
+                    fontSize: "12px"
+                  }}>
+                    {cartCount}
+                  </span>
+                )}
+              </button>
+            </OverlayTrigger>
+          </li>
         </ul>
       </nav>
+      
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/home" element={<Home />} />

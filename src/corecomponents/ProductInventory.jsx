@@ -56,6 +56,11 @@ const handleSave = (item, isNew = false) => {
       if (isNew) {
         setInventoryData(prev => [...prev, item]);
         setNewItem({ productId: '', inventory: {} });
+      } else {
+        // Update the saved item in inventoryData
+        setInventoryData(prev =>
+          prev.map(i => i.productId === item.productId ? item : i)
+        );
       }
     })
     .catch((err) => console.error('Save error:', err));
@@ -89,9 +94,7 @@ return (
   <div style={{ padding: 20 }}>
     <h2>Inventory Management</h2>
 
-    {successMsg && (
-      <div style={{ color: 'green', marginBottom: 10 }}>{successMsg}</div>
-    )}
+      
 
     <table border="1" cellPadding="8" style={{ borderCollapse: 'collapse', width: '100%' }}>
       <thead>
@@ -116,8 +119,8 @@ return (
               </td>
             ))}
             <td>
-              <button onClick={() => handleSave(item)}>💾 Save</button>{' '}
-              <button onClick={() => handleDelete(item.productId)}>❌ Delete</button>
+              <button type="button" onClick={() => handleSave(item)}>💾</button>{' '}
+              <button type="button" onClick={() => handleDelete(item.productId)}>❌</button>
             </td>
           </tr>
         ))}

@@ -183,7 +183,9 @@ export default function OrderPlacement() {
                 orderRequest,
                 { headers: { "Content-Type": "application/json" } }
             );
-            sessionStorage.clear();
+            
+            // Clear cart after successful order placement
+            sessionStorage.removeItem("cart");
             setTimeout(() => {
                 navigate("/ordersuccess");
             }, 1000);
