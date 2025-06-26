@@ -51,8 +51,9 @@ const handleSave = (item, isNew = false) => {
   })
     .then((res) => res.json())
     .then(() => {
-      setSuccessMsg('Saved successfully!');
-      setTimeout(() => setSuccessMsg(''), 2000);
+      setPromptMsg('Saved successfully');
+        setShowPrompt(true);
+        setTimeout(() => setShowPrompt(false), 1500);
       if (isNew) {
         setInventoryData(prev => [...prev, item]);
         setNewItem({ productId: '', inventory: {} });
@@ -71,6 +72,8 @@ const handleDelete = (productId) => {
     method: 'DELETE',
   })
     .then(() => {
+      setSuccessMsg('Deleted successfully!');
+      setTimeout(() => setSuccessMsg(''), 2000);
       setInventoryData(prev => prev.filter(item => item.productId !== productId));
     })
     .catch((err) => console.error('Delete error:', err));
