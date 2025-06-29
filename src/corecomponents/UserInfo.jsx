@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import ReviewProduct from "./ReviewProduct";
 
 export default function UserInfo() {
     const [activeTab, setActiveTab] = useState("details");
@@ -18,6 +19,10 @@ export default function UserInfo() {
     const [showOrders, setShowOrders] = useState(false);
     const [editField, setEditField] = useState(""); // which field is being edited
     const [editValue, setEditValue] = useState(""); // value being edited
+    const [reviewOrder, setReviewOrder] = useState(null); // <-- state to track the order being reviewed
+    const [showCancelPrompt, setShowCancelPrompt] = useState(false);
+    const [cancelReason, setCancelReason] = useState("");
+    const [cancelOrderId, setCancelOrderId] = useState(null);
     const navigate = useNavigate();
 
     // Fetch user info when "User Details" tab is clicked or on initial mount
@@ -186,10 +191,25 @@ export default function UserInfo() {
                     >
                         Order History
                     </div>
+                    <div
+                        style={{
+                            padding: "12px 24px",
+                            cursor: "pointer",
+                            background: activeTab === "review" ? "#e9ecef" : "transparent",
+                            fontWeight: activeTab === "review" ? 600 : 500,
+                            color: "#007bff"
+                        }}
+                        onClick={() => handleTabClick("review")}
+                    >
+                        Review Order
+                    </div>
                 </div>
                 {/* Right side content */}
                 <div style={{ flex: 1 }}>
-                    <h2 className="mb-3">Welcome to Paaka Butti</h2>
+                    {/* Only show heading on details and orders tab */}
+                    {(activeTab === "details" || activeTab === "orders") && (
+                        <h2 className="mb-3">Welcome to Paaka Butti</h2>
+                    )}
                     {activeTab === "details" && showForm && (
                         <div style={{ marginBottom: "24px", background: "#f8f9fa", border: "1px solid #eee", borderRadius: "8px", padding: "18px 24px" }}>
                             {/* Name */}
@@ -299,7 +319,8 @@ export default function UserInfo() {
                             {orders.length === 0 ? (
                                 <div style={{ color: "#888" }}>No orders found.</div>
                             ) : (
-                                <table className="table table-bordered">
+                                <table className="table table-bordered" style={{font: "small-caption"}}>
+
                                     <thead>
                                         <tr>
                                             <th>Order ID</th>
@@ -311,37 +332,79 @@ export default function UserInfo() {
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {orders.map((order, idx) => (
-                                            <tr key={idx}>
-                                                <td>{order.orderId || order.id || idx + 1}</td>
-                                                <td>
-                                                    {order.orderDate
-                                                        ? new Date(order.orderDate).toLocaleDateString("en-GB")
-                                                        : ""}
-                                                </td>
-                                                <td>
-                                                    ₹{order.grandTotal}
-                                                </td>
-                                                <td>
-                                                    {Array.isArray(order.orderItems) && order.orderItems.length > 0 ? (
-                                                        <ul style={{ margin: 0, paddingLeft: 18 }}>
-                                                            {order.orderItems.map((item, i) => (
-                                                                <li key={i}>
-                                                                    {item.name} ({item.size || item.quantity || item.qty || "-"}) x {item.count}
-                                                                </li>
-                                                            ))}
-                                                        </ul>
-                                                    ) : (
-                                                        <span style={{ color: "#888" }}>-</span>
-                                                    )}
-                                                </td>
-                                                <td>{order.deliveryMode || "-"}</td>
-                                                <td>{order.deliveryAddress || "-"}</td>
-                                            </tr>
-                                        ))}
+                                        {orders.map((order, idx) => {
+    const orderDate = new Date(order.orderDate);
+    const now = new Date();
+    const diffHrs = (now - orderDate) / (1000 * 60 * 60);
+    const diffDays = (now - orderDate) / (1000 * 60 * 60 * 24);
+    const canCancel = diffHrs <= 24;
+    const canRate = diffDays <= 31; // 1 month ≈ 31 days
+
+    return (
+      <tr key={idx}>
+        <td>{order.orderId || order.id || idx + 1}</td>
+        <td>
+          {order.orderDate
+            ? orderDate.toLocaleDateString("en-GB")
+            : ""}
+        </td>
+        <td>
+          ₹{order.grandTotal}
+        </td>
+        <td>
+          {Array.isArray(order.orderItems) && order.orderItems.length > 0 ? (
+            <ul style={{ margin: 0, paddingLeft: 18 }}>
+              {order.orderItems.map((item, i) => (
+                <li key={i}>
+                  {item.name} ({item.size || item.quantity || item.qty || "-"}) x {item.count}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <span style={{ color: "#888" }}>-</span>
+          )}
+        </td>
+        <td>{order.deliveryMode || "-"}</td>
+        <td>{order.deliveryAddress || "-"}</td>
+        <td>
+          {canCancel && (
+            <a
+              href="#"
+              style={{ color: "#dc3545", textDecoration: "underline", cursor: "pointer", marginRight: 8 }}
+              onClick={e => {
+                e.preventDefault();
+                setCancelOrderId(order.orderId || order.id);
+                setShowCancelPrompt(true);
+              }}
+            >
+              Cancel Order
+            </a>
+          )}
+          {canRate && (
+            <a
+              href="#"
+              style={{ color: "#007bff", textDecoration: "underline", cursor: "pointer" }}
+              onClick={e => {
+                e.preventDefault();
+                setReviewOrder(order); // <-- set the order being reviewed
+                setActiveTab("review");
+              }}
+            >
+              Rate &amp; Review
+            </a>
+          )}
+        </td>
+      </tr>
+    );
+  })}
                                     </tbody>
                                 </table>
                             )}
+                        </div>
+                    )}
+                    {activeTab === "review" && (
+                        <div>
+                            <ReviewProduct order={reviewOrder} />
                         </div>
                     )}
                     {error && !showForm && !showOrders && (
@@ -349,6 +412,70 @@ export default function UserInfo() {
                     )}
                 </div>
             </div>
+            {showCancelPrompt && (
+  <div style={{
+    position: "fixed",
+    top: 0, left: 0, right: 0, bottom: 0,
+    background: "rgba(0,0,0,0.3)",
+    zIndex: 9999,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center"
+  }}>
+    <div style={{
+      background: "#fff",
+      padding: 24,
+      borderRadius: 8,
+      minWidth: 320,
+      boxShadow: "0 2px 12px rgba(0,0,0,0.15)"
+    }}>
+      <h5 style={{ marginBottom: 12 }}>Cancel Order</h5>
+      <div style={{ marginBottom: 10 }}>
+        <label>
+          Reason for cancellation:
+          <select
+            className="form-control"
+            style={{ marginTop: 8 }}
+            value={cancelReason}
+            onChange={e => setCancelReason(e.target.value)}
+          >
+            <option value="">Select a reason...</option>
+            <option value="Ordered by mistake">Ordered by mistake</option>
+            <option value="Found a better price elsewhere">Found a better price elsewhere</option>
+            <option value="Need to change address or details">Need to change address or details</option>
+            <option value="Item will not arrive on time">Item will not arrive on time</option>
+            <option value="Other">Other</option>
+          </select>
+        </label>
+      </div>
+      <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
+        <button
+          className="btn btn-secondary"
+          onClick={() => {
+            setShowCancelPrompt(false);
+            setCancelReason("");
+            setCancelOrderId(null);
+          }}
+        >
+          Close
+        </button>
+        <button
+          className="btn btn-danger"
+          disabled={!cancelReason.trim()}
+          onClick={() => {
+            // TODO: Call your cancel order API here with cancelOrderId and cancelReason
+            alert(`Order ${cancelOrderId} cancelled for reason: ${cancelReason}`);
+            setShowCancelPrompt(false);
+            setCancelReason("");
+            setCancelOrderId(null);
+          }}
+        >
+          Confirm Cancel
+        </button>
+      </div>
+    </div>
+  </div>
+)}
         </div>
     );
 }

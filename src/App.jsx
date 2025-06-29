@@ -13,6 +13,8 @@ import CustomerManagement from './corecomponents/CustomerManagement';
 import SignUp from './corecomponents/Signup';
 import SignIn from './corecomponents/Signin';
 import UserInfo from './corecomponents/UserInfo';
+import ReviewProduct from './corecomponents/ReviewProduct';
+import OrderManagement from './corecomponents/OrderManagement';
 import { FaShoppingCart } from "react-icons/fa";
 import OverlayTrigger from 'react-bootstrap/OverlayTrigger';
 import Tooltip from 'react-bootstrap/Tooltip';
@@ -59,6 +61,7 @@ function AppContent() {
           <li><Link to="/aboutus">About Us</Link></li>
           <li><Link to="/contactus">Contact Us</Link></li>
           <li><Link to="/customermanagement">Customer Management</Link></li>
+          <li><Link to="/OrderManagement">Order Management</Link></li>
           <li className="spice-horizontal-nav-right">
             <input
               type="text"
@@ -195,6 +198,7 @@ function AppContent() {
         <Route path="/signup" element={<SignUp />} />
         <Route path="/signin" element={<SignIn />} />
         <Route path="/userinfo" element={<UserInfo />} />
+        <Route path="/ReviewProduct" element={<ReviewProduct />} />
       </Routes>
       <footer>
         <p>
