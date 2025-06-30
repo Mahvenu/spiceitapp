@@ -155,6 +155,31 @@ export default function UserInfo() {
         setEditField("");
     };
 
+    const handleConfirmCancel = async () => {
+        if (!cancelOrderId || !cancelReason) return;
+        try {
+            // Pass service, orderId, and reason as query parameters
+            const params = new URLSearchParams({
+                service: "cancelOrder",
+                orderId: cancelOrderId,
+                reason: cancelReason,
+                phoneNumber: form.phone
+            });
+            const url = `https://n5fpw7cag6.execute-api.ap-south-1.amazonaws.com/dev/cancelOrder?${params.toString()}`;
+            const response = await fetch(url, {
+                method: "PUT"
+            });
+            if (!response.ok) throw new Error("Failed to cancel order");
+            setShowCancelPrompt(false);
+            setCancelReason("");
+            setCancelOrderId(null);
+            setSuccess("Order cancelled successfully.");
+            // Optionally, refresh order list here
+        } catch (err) {
+            setError("Failed to cancel order. Please try again.");
+        }
+    };
+
     return (
         <div className="container my-4" style={{ maxWidth: 1000 }}>
             <div style={{ display: "flex", gap: "32px" }}>
@@ -462,13 +487,7 @@ export default function UserInfo() {
         <button
           className="btn btn-danger"
           disabled={!cancelReason.trim()}
-          onClick={() => {
-            // TODO: Call your cancel order API here with cancelOrderId and cancelReason
-            alert(`Order ${cancelOrderId} cancelled for reason: ${cancelReason}`);
-            setShowCancelPrompt(false);
-            setCancelReason("");
-            setCancelOrderId(null);
-          }}
+          onClick={handleConfirmCancel}
         >
           Confirm Cancel
         </button>
