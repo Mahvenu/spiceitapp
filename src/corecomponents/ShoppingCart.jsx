@@ -1,64 +1,94 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
+import { useNavigate } from 'react-router-dom';
+import { FaTrash } from 'react-icons/fa'; // Add this import
 
-const ProductInventory = () => {
-  const [inventoryData, setInventoryData] = useState([]);
-  const [loading, setLoading] = useState(true);
-  // const apiUrl = 'https://r46jrehpue.execute-api.ap-south-1.amazonaws.com/spicedev?service=productInventory';
-  const API_URL = 'https://gdhfo6zldj.execute-api.ap-south-1.amazonaws.com/dev/getInventory?service=inventory';
+export default function ShoppingCart({ cart, products, handleRemoveFromCart }) {
+  const navigate = useNavigate();
 
-  
-  useEffect(() => {
-    fetch(API_URL)
-      .then((res) => {
-        if (!res.ok) throw new Error('Failed to fetch');
-        return res.json();
-      })
-      .then((json) => {
-        // Parse if it's a stringified array
-        const data = typeof json === 'string' ? JSON.parse(json) : json;
-        setInventoryData(data);
-        setLoading(false);
-      })
-      .catch((err) => {
-        console.error('Error:', err);
-        setLoading(false);
-      });
-  }, []);
+  // Prepare cart items with product details
+  const cartItems = Object.entries(cart).map(([key, { qtyStr, count }]) => {
+    const [productId, qty] = key.split('|');
+    const product = products.find(p => p.productId === productId);
+    if (!product) return null;
+    const inventory = product.inventory || {};
+    const name = inventory.Name || productId;
+    const pricePerKg = Number(inventory.UnitPrice) || 0;
 
-  if (loading) return <p>Loading...</p>;
-  if (inventoryData.length === 0) return <p>No data available.</p>;
+    // Calculate price for selected qty
+    let grams = 0;
+    if (qty && qty.toLowerCase().includes('kg')) {
+      grams = parseFloat(qty) * 1000;
+    } else if (qty && qty.toLowerCase().includes('g')) {
+      grams = parseFloat(qty);
+    }
+    const priceForSelectedQty = grams && pricePerKg
+      ? Math.round((pricePerKg / 1000) * grams)
+      : pricePerKg;
+    const total = priceForSelectedQty * count;
 
-  // Collect all unique keys across all inventory objects
-  const allKeys = Array.from(
-    new Set(inventoryData.flatMap(item => Object.keys(item.inventory)))
-  );
+    return {
+      key,
+      name,
+      qtyStr,
+      count,
+      priceForSelectedQty,
+      total,
+    };
+  }).filter(Boolean);
+
+  const grandTotal = cartItems.reduce((sum, item) => sum + item.total, 0);
+
+  if (cartItems.length === 0) {
+    return <div style={{ padding: 20 }}><h3>Your cart is empty.</h3></div>;
+  }
 
   return (
     <div style={{ padding: 20 }}>
-      <h2>Inventory Table</h2>
+      <h2>Your Shopping Cart</h2>
       <table border="1" cellPadding="8" style={{ borderCollapse: 'collapse', width: '100%' }}>
         <thead>
           <tr>
-            <th>Product ID</th>
-            {allKeys.map(key => (
-              <th key={key}>{key}</th>
-            ))}
+            <th>Product</th>
+            <th>Pack Size</th>
+            <th>Quantity</th>
+            <th>Unit Price (₹)</th>
+            <th>Total (₹)</th>
+            <th></th>
           </tr>
         </thead>
         <tbody>
-          {inventoryData.map((item, index) => (
-            <tr key={index}>
-              <td>{item.productId}</td>
-              {allKeys.map(key => (
-                <td key={key}>
-                  {item.inventory[key] !== undefined ? item.inventory[key].toString() : '-'}
-                </td>
-              ))}
+          {cartItems.map(item => (
+            <tr key={item.key}>
+              <td>{item.name}</td>
+              <td>{item.qtyStr}</td>
+              <td>{item.count}</td>
+              <td>₹{item.priceForSelectedQty}</td>
+              <td>₹{item.total}</td>
+              <td>
+                <button
+                  onClick={() => handleRemoveFromCart(item.key)}
+                  style={{ color: 'red', cursor: 'pointer', background: 'none', border: 'none' }}
+                  title="Remove one"
+                >
+                  <FaTrash />
+                </button>
+              </td>
             </tr>
           ))}
+          <tr>
+            <td colSpan={4} style={{ textAlign: 'right', fontWeight: 'bold' }}>Grand Total</td>
+            <td colSpan={2} style={{ fontWeight: 'bold' }}>₹{grandTotal}</td>
+          </tr>
         </tbody>
       </table>
+      <div style={{ textAlign: 'right', marginTop: 24 }}>
+        <button
+          className="btn btn-success"
+          onClick={() => navigate('/orderplacement')}
+        >
+          Proceed to Checkout
+        </button>
+      </div>
     </div>
   );
-};
-export default ProductInventory;
+}

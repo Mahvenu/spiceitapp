@@ -3,7 +3,7 @@ import axios from "axios";
 import '../customstyles/spiceprod.css';
 import { useNavigate } from "react-router-dom"; // <-- Add this import
 
-export default function OrderPlacement() {
+export default function OrderPlacement({ setCart }) {
     const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -135,11 +135,8 @@ export default function OrderPlacement() {
         }
     }, [loading, products]);
 
-    
-    // Add this function above your return statement
-    const handleOrderSubmit = async (e) => {
-        e.preventDefault();
-
+    // Common function to place order for any payment mode
+    const placeOrder = async (paymentMode, onSuccess, onError) => {
         // Build orderItems array from cartItems
         const orderItems = cartItems.map(item => ({
             productId: String(item.name), // Use product name as productId to match your sample
@@ -170,7 +167,7 @@ export default function OrderPlacement() {
             addressType: String(addressType),
             deliveryAddress: String(deliveryAddress),
             deliveryMode: String(deliveryMode),
-            paymentMode: String(paymentTab),
+            paymentMode: paymentMode,
             orderTotal: cartTotal,
             deliveryFee: deliveryFee,
             grandTotal: grandTotal,
@@ -183,14 +180,13 @@ export default function OrderPlacement() {
                 orderRequest,
                 { headers: { "Content-Type": "application/json" } }
             );
-            
-            // Clear cart after successful order placement
             sessionStorage.removeItem("cart");
-            setTimeout(() => {
-                navigate("/ordersuccess");
-            }, 1000);
+            setCartItems([]);
+            if (typeof setCart === "function") setCart({});
+            if (typeof onSuccess === "function") onSuccess();
         } catch (err) {
-            alert("Order placement failed. Please try again.");
+            if (typeof onError === "function") onError(err);
+            else alert("Order placement failed. Please try again.");
         }
     };
 
@@ -232,6 +228,18 @@ export default function OrderPlacement() {
         } catch (err) {
             // Optionally handle error
         }
+    };
+
+    // Add this function above your return statement
+
+    const handleOrderSubmit = async (e) => {
+        e.preventDefault();
+        // Add your card/netbanking validation here if needed
+        await placeOrder(paymentTab, () => {
+            setTimeout(() => {
+                navigate("/ordersuccess");
+            }, 1000);
+        });
     };
 
     return (
@@ -805,18 +813,18 @@ export default function OrderPlacement() {
                     )}
                     {paymentTab === "cod" && (
                         <form
-                            onSubmit={e => {
+                            onSubmit={async e => {
                                 e.preventDefault();
                                 if (captchaInput !== captchaValue) {
                                     setCaptchaError("Invalid captcha. Please try again.");
                                     return;
                                 }
                                 setCaptchaError("");
-                                // Directly navigate to success page
-                                sessionStorage.clear();
-                                setTimeout(() => {
-                                    navigate("/ordersuccess");
-                                }, 500);
+                                await placeOrder("cod", () => {
+                                    setTimeout(() => {
+                                        navigate("/ordersuccess");
+                                    }, 500);
+                                });
                             }}
                             noValidate
                         >

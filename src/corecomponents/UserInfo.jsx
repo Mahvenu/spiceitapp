@@ -354,6 +354,7 @@ export default function UserInfo() {
                                             <th>Order Items</th>
                                             <th>Delivery Mode</th>
                                             <th>Delivery Address</th>
+                                            <th>Order Status</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -392,7 +393,11 @@ export default function UserInfo() {
         <td>{order.deliveryMode || "-"}</td>
         <td>{order.deliveryAddress || "-"}</td>
         <td>
-          {canCancel && (
+          {order.status || "-"}
+         </td>
+        
+        <td>
+          {canCancel && order.status !== "cancelled" && (
             <a
               href="#"
               style={{ color: "#dc3545", textDecoration: "underline", cursor: "pointer", marginRight: 8 }}
