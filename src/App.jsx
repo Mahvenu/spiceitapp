@@ -15,6 +15,7 @@ import SignIn from './corecomponents/Signin';
 import UserInfo from './corecomponents/UserInfo';
 import ReviewProduct from './corecomponents/ReviewProduct';
 import OrderManagement from './corecomponents/OrderManagement';
+import OrderHistory from './corecomponents/OrderHistory';
 import { FaShoppingCart } from "react-icons/fa";
 import OverlayTrigger from 'react-bootstrap/OverlayTrigger';
 import Tooltip from 'react-bootstrap/Tooltip';
@@ -197,6 +198,15 @@ function AppContent() {
                     >
                       User Info
                     </div>
+                    <div
+                      style={{ padding: "10px 16px", color: "#333", fontWeight: 500, cursor: "pointer" }}
+                      onClick={() => {
+                        setShowDropdown(false);
+                        navigate("/OrderHistory");
+                      }}
+                    >
+                      My Orders
+                    </div>
                     <div style={{ borderTop: "1px solid #eee" }} />
                     <button
                       onClick={handleSignOut}
@@ -205,7 +215,7 @@ function AppContent() {
                         padding: "10px 0",
                         background: "none",
                         border: "none",
-                        color: "#007bff",
+                        color: "#333",
                         cursor: "pointer",
                         fontSize: "1rem"
                       }}
@@ -313,6 +323,7 @@ function AppContent() {
         <Route path="/signin" element={<SignIn />} />
         <Route path="/userinfo" element={<UserInfo />} />
         <Route path="/ReviewProduct" element={<ReviewProduct />} />
+        <Route path="/OrderHistory" element={<OrderHistory />} />
       </Routes>
       <footer>
         <p>

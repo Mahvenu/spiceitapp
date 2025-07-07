@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import ReviewProduct from "./ReviewProduct";
 
 export default function UserInfo() {
-    const [activeTab, setActiveTab] = useState("details");
+    const location = useLocation();
+    // Check for navigation state to set initial tab
+    const initialTab = location.state?.tab || "details";
+    const [activeTab, setActiveTab] = useState(initialTab);
     const [form, setForm] = useState({
         firstName: "",
         lastName: "",
@@ -15,17 +18,16 @@ export default function UserInfo() {
     const [orders, setOrders] = useState([]);
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
-    const [showForm, setShowForm] = useState(false);
-    const [showOrders, setShowOrders] = useState(false);
-    const [editField, setEditField] = useState(""); // which field is being edited
-    const [editValue, setEditValue] = useState(""); // value being edited
-    const [reviewOrder, setReviewOrder] = useState(null); // <-- state to track the order being reviewed
+    const [showForm, setShowForm] = useState(initialTab === "details");
+    const [showOrders, setShowOrders] = useState(initialTab === "orders");
+    const [editField, setEditField] = useState("");
+    const [editValue, setEditValue] = useState("");
+    const [reviewOrder, setReviewOrder] = useState(null);
     const [showCancelPrompt, setShowCancelPrompt] = useState(false);
     const [cancelReason, setCancelReason] = useState("");
     const [cancelOrderId, setCancelOrderId] = useState(null);
-    const navigate = useNavigate();
 
-    // Fetch user info when "User Details" tab is clicked or on initial mount
+    // Fetch user info
     const fetchUserInfo = async () => {
         setError("");
         setSuccess("");
@@ -57,6 +59,7 @@ export default function UserInfo() {
                         email: user.email || "",
                         phone: user.phone || "",
                         address: user.address || "",
+                        tempAddress: user.tempAddressList || "",
                         pincode: user.pincode || ""
                     });
                     setShowForm(true);
@@ -101,10 +104,19 @@ export default function UserInfo() {
         }
     };
 
-    // Fetch user info on mount (so details show by default)
+    // Fetch data on mount and when activeTab changes
     useEffect(() => {
         if (activeTab === "details") {
             fetchUserInfo();
+            setShowForm(true);
+            setShowOrders(false);
+        } else if (activeTab === "orders") {
+            fetchOrderHistory();
+            setShowForm(false);
+            setShowOrders(true);
+        } else if (activeTab === "review") {
+            setShowForm(false);
+            setShowOrders(false);
         }
         // eslint-disable-next-line
     }, [activeTab]);
@@ -114,11 +126,14 @@ export default function UserInfo() {
         setError("");
         setSuccess("");
         if (tab === "details") {
-            fetchUserInfo();
+            setShowForm(true);
             setShowOrders(false);
         } else if (tab === "orders") {
-            fetchOrderHistory();
             setShowForm(false);
+            setShowOrders(true);
+        } else if (tab === "review") {
+            setShowForm(false);
+            setShowOrders(false);
         }
     };
 
@@ -182,7 +197,7 @@ export default function UserInfo() {
 
     return (
         <div className="container my-4" style={{ maxWidth: 1000 }}>
-            <div style={{ display: "flex", gap: "32px" }}>
+            <div style={{ display: "flex", gap: "32px" ,color: "#007bfg"}}>
                 {/* Left side tabs */}
                 <div style={{
                     minWidth: "220px",
@@ -198,7 +213,7 @@ export default function UserInfo() {
                             cursor: "pointer",
                             background: activeTab === "details" ? "#e9ecef" : "transparent",
                             fontWeight: activeTab === "details" ? 600 : 500,
-                            color: "#007bff"
+                            color: "#333"
                         }}
                         onClick={() => handleTabClick("details")}
                     >
@@ -210,11 +225,11 @@ export default function UserInfo() {
                             cursor: "pointer",
                             background: activeTab === "orders" ? "#e9ecef" : "transparent",
                             fontWeight: activeTab === "orders" ? 600 : 500,
-                            color: "#007bff"
+                            color: "#333"
                         }}
                         onClick={() => handleTabClick("orders")}
                     >
-                        Order History
+                        My Orders
                     </div>
                     <div
                         style={{
@@ -222,7 +237,7 @@ export default function UserInfo() {
                             cursor: "pointer",
                             background: activeTab === "review" ? "#e9ecef" : "transparent",
                             fontWeight: activeTab === "review" ? 600 : 500,
-                            color: "#007bff"
+                            color: "#333"
                         }}
                         onClick={() => handleTabClick("review")}
                     >
@@ -236,7 +251,16 @@ export default function UserInfo() {
                         <h2 className="mb-3">Welcome to Paaka Butti</h2>
                     )}
                     {activeTab === "details" && showForm && (
-                        <div style={{ marginBottom: "24px", background: "#f8f9fa", border: "1px solid #eee", borderRadius: "8px", padding: "18px 24px" }}>
+                        <div
+                            style={{
+                                marginBottom: "24px",
+                                background: "#f8f9fa",
+                                border: "1px solid #eee",
+                                borderRadius: "8px",
+                                padding: "18px 24px",
+                                textAlign: "left"
+                            }}
+                        >
                             {/* Name */}
                             <div style={{ fontSize: "1.15rem", fontWeight: 600, marginBottom: "8px" }}>
                                 {editField === "name" ? (
@@ -245,14 +269,14 @@ export default function UserInfo() {
                                             type="text"
                                             value={editValue}
                                             onChange={e => setEditValue(e.target.value)}
-                                            style={{ width: 180, marginRight: 8 }}
+                                            style={{ width: 180, marginRight: 8, alignItems: "Left" }}
                                         />
                                         <button className="btn btn-sm btn-success" onClick={() => handleSaveEdit("name")}>Save</button>
                                         <button className="btn btn-sm btn-secondary" style={{ marginLeft: 4 }} onClick={() => setEditField("")}>Cancel</button>
                                     </>
                                 ) : (
                                     <>
-                                {form.firstName} {form.lastName}
+                                        {form.firstName} {form.lastName}
                                         <EditIcon onClick={() => {
                                             setEditField("name");
                                             setEditValue(`${form.firstName} ${form.lastName}`);
@@ -308,7 +332,7 @@ export default function UserInfo() {
                                     </>
                                 )}
                             </div>
-                            {/* Address */}
+                            {/* Address (without pincode) */}
                             <div>
                                 <strong>Address:</strong>{" "}
                                 {editField === "address" ? (
@@ -324,7 +348,7 @@ export default function UserInfo() {
                                     </>
                                 ) : (
                                     <>
-                                        {(form.address || "-") + (form.pincode ? `, ${form.pincode}` : "")}
+                                        {form.address || "-"}
                                         <EditIcon onClick={() => {
                                             setEditField("address");
                                             setEditValue(form.address);
@@ -332,8 +356,53 @@ export default function UserInfo() {
                                     </>
                                 )}
                             </div>
-                            <div>
-                                <strong>Pincode:</strong> {form.pincode || "-"}
+                            {/* Temp Address (with edit option) */}
+                            <div style={{ marginTop: "8px" }}>
+                                <strong>Temporary Address:</strong>{" "}
+                                {editField === "tempAddress" ? (
+                                    <>
+                                        <input
+                                            type="text"
+                                            value={editValue}
+                                            onChange={e => setEditValue(e.target.value)}
+                                            style={{ width: 220, marginRight: 8 }}
+                                        />
+                                        <button className="btn btn-sm btn-success" onClick={() => handleSaveEdit("tempAddress")}>Save</button>
+                                        <button className="btn btn-sm btn-secondary" style={{ marginLeft: 4 }} onClick={() => setEditField("")}>Cancel</button>
+                                    </>
+                                ) : (
+                                    <>
+                                        {form.tempAddress || "-"}
+                                        <EditIcon onClick={() => {
+                                            setEditField("tempAddress");
+                                            setEditValue(form.tempAddress || "");
+                                        }} />
+                                    </>
+                                )}
+                            </div>
+                            {/* Pincode */}
+                            <div style={{ marginTop: "8px" }}>
+                                <strong>Pincode:</strong>{" "}
+                                {editField === "pincode" ? (
+                                    <>
+                                        <input
+                                            type="text"
+                                            value={editValue}
+                                            onChange={e => setEditValue(e.target.value)}
+                                            style={{ width: 220, marginRight: 8 }}
+                                        />
+                                        <button className="btn btn-sm btn-success" onClick={() => handleSaveEdit("pincode")}>Save</button>
+                                        <button className="btn btn-sm btn-secondary" style={{ marginLeft: 4 }} onClick={() => setEditField("")}>Cancel</button>
+                                    </>
+                                ) : (
+                                    <>
+                                        {form.pincode || "-"}
+                                        <EditIcon onClick={() => {
+                                            setEditField("pincode");
+                                            setEditValue(form.tempAddressList || "");
+                                        }} />
+                                    </>
+                                )}
                             </div>
                         </div>
                     )}
@@ -355,6 +424,7 @@ export default function UserInfo() {
                                             <th>Delivery Mode</th>
                                             <th>Delivery Address</th>
                                             <th>Order Status</th>
+                                            <th>Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -395,7 +465,6 @@ export default function UserInfo() {
         <td>
           {order.status || "-"}
          </td>
-        
         <td>
           {canCancel && order.status !== "cancelled" && (
             <a
