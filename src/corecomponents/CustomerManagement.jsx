@@ -1,4 +1,25 @@
 import React, { useState, useEffect } from "react";
+import axios from "axios"; // <-- Add this import
+
+if (!window.__axios_refresh_interceptor_set) {
+    axios.interceptors.response.use(
+        response => {
+            const method = response.config?.method?.toLowerCase();
+            if (["put", "post", "delete"].includes(method)) {
+                window.location.href = window.location.pathname;
+            }
+            return response;
+        },
+        error => {
+            const method = error.config?.method?.toLowerCase();
+            if (["put", "post", "delete"].includes(method)) {
+                window.location.href = window.location.pathname;
+            }
+            return Promise.reject(error);
+        }
+    );
+    window.__axios_refresh_interceptor_set = true;
+}
 
 const EditIcon = ({ onClick }) => (
     <span
@@ -37,26 +58,6 @@ const SaveIcon = ({ onClick }) => (
     </span>
 );
 
-const DeleteIcon = ({ onClick, disabled }) => (
-    <span
-        onClick={disabled ? undefined : onClick}
-        style={{
-            cursor: disabled ? "not-allowed" : "pointer",
-            marginLeft: 8,
-            color: "#dc3545",
-            fontSize: "1.1em",
-            verticalAlign: "middle",
-            opacity: disabled ? 0.5 : 1
-        }}
-        title="Delete"
-    >
-        <svg width="16" height="16" fill="currentColor" style={{marginBottom: 2}} viewBox="0 0 16 16">
-            <path d="M5.5 5.5a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0v-6a.5.5 0 0 1 .5-.5zm2.5.5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0v-6zm2 .5a.5.5 0 0 1 .5-.5.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0v-6z"/>
-            <path fillRule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1 0-2h3a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3a1 1 0 0 1 1 1zm-3-1a.5.5 0 0 0-.5-.5h-2a.5.5 0 0 0-.5.5V4h3V2zm-7 2v9a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4H4z"/>
-        </svg>
-    </span>
-);
-
 export default function CustomerManagement() {
     const [customers, setCustomers] = useState([]);
     const [form, setForm] = useState({ firstName: "", lastName: "", email: "", phone: "", address: "", pincode: "" });
@@ -64,6 +65,8 @@ export default function CustomerManagement() {
     const [loading, setLoading] = useState(false);
     const [editIdx, setEditIdx] = useState(null);
     const [editCustomer, setEditCustomer] = useState({});
+    const [showEditPrompt, setShowEditPrompt] = useState(false);
+    const [pendingEditIdx, setPendingEditIdx] = useState(null);
 
     // Fetch customers on mount
     useEffect(() => {
@@ -92,11 +95,15 @@ export default function CustomerManagement() {
 
     const handleAdd = async e => {
         e.preventDefault();
-        if (!form.firstName || !form.lastName || !form.email || !form.phone || !form.address || !form.pincode) {
-            setError("All fields are required.");
+        setError("");
+        // Check if phone number already exists
+        const phoneExists = customers.some(
+            c => c.phone && c.phone.trim() === form.phone.trim()
+        );
+        if (phoneExists) {
+            setError("A customer with this phone number already exists.");
             return;
         }
-        setError("");
         setLoading(true);
         try {
             const response = await fetch("https://d9umq22y9f.execute-api.ap-south-1.amazonaws.com/dev/saveCustomerDetails?service=saveCustomer", {
@@ -119,13 +126,6 @@ export default function CustomerManagement() {
         setLoading(false);
     };
 
-    const handleDelete = id => {
-        if (window.confirm("Are you sure you want to delete this customer?")) {
-            setCustomers(customers.filter(c => c.id !== id));
-            // Optionally, call an API to delete customer here
-        }
-    };
-
     const handleEditClick = (idx, c) => {
         setEditIdx(idx);
         setEditCustomer({ ...c });
@@ -135,12 +135,42 @@ export default function CustomerManagement() {
         setEditCustomer({ ...editCustomer, [e.target.name]: e.target.value });
     };
 
+    // Show confirmation prompt before saving edit
     const handleSaveEdit = idx => {
-        // Optionally, call an API to update customer here
-        setCustomers(customers.map((c, i) => (i === idx ? { ...editCustomer } : c)));
-        setEditIdx(null);
-        setEditCustomer({});
-      };
+        setPendingEditIdx(idx);
+        setShowEditPrompt(true);
+    };
+
+    const confirmSaveEdit = async () => {
+        setLoading(true);
+        try {
+            const response = await fetch(
+                "https://d9umq22y9f.execute-api.ap-south-1.amazonaws.com/dev/saveCustomerDetails?service=saveCustomer",
+                {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(editCustomer)
+                }
+            );
+            if (response.ok) {
+                setCustomers(customers.map((c, i) => (i === pendingEditIdx ? { ...editCustomer } : c)));
+                setEditIdx(null);
+                setEditCustomer({});
+                setShowEditPrompt(false);
+                setPendingEditIdx(null);
+            } else {
+                // Optionally show error
+            }
+        } catch {
+            // Optionally show error
+        }
+        setLoading(false);
+    };
+
+    const cancelSaveEdit = () => {
+        setShowEditPrompt(false);
+        setPendingEditIdx(null);
+    };
 
     return (
         <div className="container my-4">
@@ -307,10 +337,6 @@ export default function CustomerManagement() {
                                         ) : c.pincode}
                                     </td>
                                     <td>
-                                        <DeleteIcon
-                                            onClick={() => handleDelete(c.id)}
-                                            disabled={editIdx === idx}
-                                        />
                                         {editIdx === idx ? (
                                             <SaveIcon onClick={() => handleSaveEdit(idx)} />
                                         ) : (
@@ -323,6 +349,32 @@ export default function CustomerManagement() {
                     </tbody>
                 </table>
             </div>
+            {/* Confirmation Prompt for Edit */}
+            {showEditPrompt && (
+                <div style={{
+                    position: "fixed",
+                    top: 0, left: 0, right: 0, bottom: 0,
+                    background: "rgba(0,0,0,0.3)",
+                    zIndex: 9999,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center"
+                }}>
+                    <div style={{
+                        background: "#fff",
+                        padding: 24,
+                        borderRadius: 8,
+                        minWidth: 320,
+                        boxShadow: "0 2px 12px rgba(0,0,0,0.15)"
+                    }}>
+                        <h5 style={{ marginBottom: 12 }}>Are you sure you want to save these changes?</h5>
+                        <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
+                            <button className="btn btn-secondary" onClick={cancelSaveEdit}>No</button>
+                            <button className="btn btn-primary" onClick={confirmSaveEdit}>Yes, Save</button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

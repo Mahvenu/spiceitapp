@@ -1,156 +1,262 @@
 import React, { useState, useEffect } from 'react';
+import axios from "axios"; // <-- Add this import
+
+
 
 const ProductInventory = () => {
   const [inventoryData, setInventoryData] = useState([]);
   const [newItem, setNewItem] = useState({ productId: '', inventory: {} });
   const [loading, setLoading] = useState(true);
   const [successMsg, setSuccessMsg] = useState('');
-  // const apiUrl = 'https://r46jrehpue.execute-api.ap-south-1.amazonaws.com/spicedev?service=productInventory';
-  const API_URL = 'https://gdhfo6zldj.execute-api.ap-south-1.amazonaws.com/dev/getInventory?service=inventory';
+  const [showPrompt, setShowPrompt] = useState(false);
+  const [promptMsg, setPromptMsg] = useState('');
+  const [pendingDelete, setPendingDelete] = useState(null);
+  const [reloadFlag, setReloadFlag] = useState(false);
+
   const API_BASE = 'https://gdhfo6zldj.execute-api.ap-south-1.amazonaws.com/dev/';
 
+  // Fetch inventory data, also when reloadFlag changes
   useEffect(() => {
+    setLoading(true);
     fetch(`${API_BASE}/getInventory?service=getInventory`)
-    .then((res) => res.json())
-    .then((data) => {
-      const parsed = typeof data === 'string' ? JSON.parse(data) : data;
-      setInventoryData(parsed);
-      setLoading(false);
-    })
-    .catch((err) => {
-      console.error('Error fetching inventory:', err);
-      setLoading(false);
-    });
-}, []);
+      .then((res) => res.json())
+      .then((data) => {
+        const parsed = typeof data === 'string' ? JSON.parse(data) : data;
+        setInventoryData(parsed);
+        setLoading(false);
+      })
+      .catch((err) => {
+        setLoading(false);
+      });
+  }, [reloadFlag]);
 
-const allKeys = Array.from(
-  new Set(inventoryData.flatMap(item => Object.keys(item.inventory)))
-);
-
-const handleInputChange = (productId, key, value) => {
-  setInventoryData(prev =>
-    prev.map(item =>
-      item.productId === productId
-        ? {
-            ...item,
-            inventory: {
-              ...item.inventory,
-              [key]: value,
-            },
-          }
-        : item
-    )
+  const allKeys = Array.from(
+    new Set(inventoryData.flatMap(item => Object.keys(item.inventory)))
   );
-};
 
-const handleSave = (item, isNew = false) => {
-  fetch(`${API_BASE}/saveInventory?service=saveInventory`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(item),
-  })
-    .then((res) => res.json())
-    .then(() => {
-      setPromptMsg('Saved successfully');
-        setShowPrompt(true);
-        setTimeout(() => setShowPrompt(false), 1500);
-      if (isNew) {
-        setInventoryData(prev => [...prev, item]);
-        setNewItem({ productId: '', inventory: {} });
-      } else {
-        // Update the saved item in inventoryData
-        setInventoryData(prev =>
-          prev.map(i => i.productId === item.productId ? item : i)
-        );
-      }
+  const handleInputChange = (productId, key, value) => {
+    setInventoryData(prev =>
+      prev.map(item =>
+        item.productId === productId
+          ? {
+              ...item,
+              inventory: {
+                ...item.inventory,
+                [key]: value,
+              },
+            }
+          : item
+      )
+    );
+  };
+
+  const handleSave = (item, isNew = false) => {
+    setPromptMsg("Are you sure you want to save changes?");
+    setShowPrompt(true);
+    window._pendingSave = { item, isNew };
+  };
+
+  const confirmSave = () => {
+    const { item, isNew } = window._pendingSave || {};
+    fetch(`${API_BASE}/saveInventory?service=saveInventory`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(item),
     })
-    .catch((err) => console.error('Save error:', err));
-};
+      .then((res) => res.json())
+      .then(() => {
+        setPromptMsg('Saved successfully');
+        setTimeout(() => setShowPrompt(false), 1200);
+        setReloadFlag(flag => !flag); // <-- Only reload inventory data, not the whole page
+        if (isNew) {
+          setNewItem({ productId: '', inventory: {} });
+        }
+      })
+      .catch((err) => {
+        setPromptMsg('Save failed');
+        setTimeout(() => setShowPrompt(false), 1200);
+      });
+    window._pendingSave = null;
+  };
 
-const handleDelete = (productId) => {
-  fetch(`${API_BASE}/deleteInventory?service=deleteInventory&productId=${productId}`, {
-    method: 'DELETE',
-  })
-    .then(() => {
-      setSuccessMsg('Deleted successfully!');
-      setTimeout(() => setSuccessMsg(''), 2000);
-      setInventoryData(prev => prev.filter(item => item.productId !== productId));
+  // Show confirmation prompt before delete
+  const handleDelete = (productId) => {
+    setPromptMsg("Are you sure you want to delete this item?");
+    setShowPrompt(true);
+    setPendingDelete(productId);
+  };
+
+  const confirmDelete = () => {
+    fetch(`${API_BASE}/deleteInventory?service=deleteInventory&productId=${pendingDelete}`, {
+      method: 'DELETE',
     })
-    .catch((err) => console.error('Delete error:', err));
-};
+      .then(() => {
+        setPromptMsg('Deleted successfully!');
+        setTimeout(() => setShowPrompt(false), 1200);
+        setInventoryData(prev => prev.filter(item => item.productId !== pendingDelete));
+      })
+      .catch((err) => {
+        setPromptMsg('Delete failed');
+        setTimeout(() => setShowPrompt(false), 1200);
+        console.error('Delete error:', err);
+      });
+    setPendingDelete(null);
+  };
 
-const handleAddNew = () => {
-  if (!newItem.productId) return alert('Product ID is required');
-  handleSave(newItem, true); // Pass a flag to indicate it's a new item
-};
+  const handleAddNew = () => {
+    if (!newItem.productId) return alert('Product ID is required');
+    handleSave(newItem, true); // Pass a flag to indicate it's a new item
+  };
 
-const handleNewItemChange = (key, value) => {
-  setNewItem((prev) => ({
-    ...prev,
-    inventory: { ...prev.inventory, [key]: value },
-  }));
-};
+  const handleNewItemChange = (key, value) => {
+    setNewItem((prev) => ({
+      ...prev,
+      inventory: { ...prev.inventory, [key]: value },
+    }));
+  };
 
-if (loading) return <p>Loading...</p>;
+  if (loading) return <p>Loading...</p>;
 
-return (
-  <div style={{ padding: 20 }}>
-    <h2>Inventory Management</h2>
+  return (
+    <div style={{ padding: 20 }}>
+      <h2>Inventory Management</h2>
 
-      
+      {showPrompt && (
+        <div style={{
+          position: "fixed",
+          top: 0, left: 0, right: 0, bottom: 0,
+          background: "rgba(0,0,0,0.3)",
+          zIndex: 9999,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center"
+        }}>
+          <div style={{
+            background: "#fff",
+            padding: 24,
+            borderRadius: 8,
+            minWidth: 320,
+            boxShadow: "0 2px 12px rgba(0,0,0,0.15)"
+          }}>
+            <h5 style={{ marginBottom: 12 }}>{promptMsg}</h5>
+            {promptMsg.startsWith("Are you sure you want to save") && (
+              <div style={{ display: "flex", justifyContent: "space-between" }}>
+                <button
+                  onClick={confirmSave}
+                  style={{
+                    background: "#007bff",
+                    color: "#fff",
+                    border: "none",
+                    padding: "8px 16px",
+                    borderRadius: 4,
+                    cursor: "pointer",
+                    marginRight: 8
+                  }}
+                >
+                  Yes, Save
+                </button>
+                <button
+                  onClick={() => setShowPrompt(false)}
+                  style={{
+                    background: "#6c757d",
+                    color: "#fff",
+                    border: "none",
+                    padding: "8px 16px",
+                    borderRadius: 4,
+                    cursor: "pointer"
+                  }}
+                >
+                  Cancel
+                </button>
+              </div>
+            )}
+            {promptMsg.startsWith("Are you sure you want to delete") && (
+              <div style={{ display: "flex", justifyContent: "space-between" }}>
+                <button
+                  onClick={confirmDelete}
+                  style={{
+                    background: "#dc3545",
+                    color: "#fff",
+                    border: "none",
+                    padding: "8px 16px",
+                    borderRadius: 4,
+                    cursor: "pointer",
+                    marginRight: 8
+                  }}
+                >
+                  Yes, Delete
+                </button>
+                <button
+                  onClick={() => { setShowPrompt(false); setPendingDelete(null); }}
+                  style={{
+                    background: "#6c757d",
+                    color: "#fff",
+                    border: "none",
+                    padding: "8px 16px",
+                    borderRadius: 4,
+                    cursor: "pointer"
+                  }}
+                >
+                  Cancel
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
-    <table border="1" cellPadding="8" style={{ borderCollapse: 'collapse', width: '100%' }}>
-      <thead>
-        <tr>
-          <th>Product ID</th>
-          {allKeys.map((key) => (
-            <th key={key}>{key}</th>
+      <table border="1" cellPadding="8" style={{ borderCollapse: 'collapse', width: '100%' }}>
+        <thead>
+          <tr>
+            <th>Product ID</th>
+            {allKeys.map((key) => (
+              <th key={key}>{key}</th>
+            ))}
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {inventoryData.map((item) => (
+            <tr key={item.productId}>
+              <td>{item.productId}</td>
+              {allKeys.map((key) => (
+                <td key={key}>
+                  <input
+                    value={item.inventory[key] || ''}
+                    onChange={(e) => handleInputChange(item.productId, key, e.target.value)}
+                  />
+                </td>
+              ))}
+              <td>
+                <button type="button" onClick={() => handleSave(item)}>💾</button>{' '}
+                <button type="button" onClick={() => handleDelete(item.productId)}>❌</button>
+              </td>
+            </tr>
           ))}
-          <th>Actions</th>
-        </tr>
-      </thead>
-      <tbody>
-        {inventoryData.map((item) => (
-          <tr key={item.productId}>
-            <td>{item.productId}</td>
+          <tr>
+            <td>
+              <input
+                placeholder="New Product ID"
+                value={newItem.productId}
+                onChange={(e) => setNewItem({ ...newItem, productId: e.target.value })}
+              />
+            </td>
             {allKeys.map((key) => (
               <td key={key}>
                 <input
-                  value={item.inventory[key] || ''}
-                  onChange={(e) => handleInputChange(item.productId, key, e.target.value)}
+                  placeholder={key}
+                  value={newItem.inventory[key] || ''}
+                  onChange={(e) => handleNewItemChange(key, e.target.value)}
                 />
               </td>
             ))}
             <td>
-              <button type="button" onClick={() => handleSave(item)}>💾</button>{' '}
-              <button type="button" onClick={() => handleDelete(item.productId)}>❌</button>
+              <button onClick={handleAddNew}>➕ Add</button>
             </td>
           </tr>
-        ))}
-        <tr>
-          <td>
-            <input
-              placeholder="New Product ID"
-              value={newItem.productId}
-              onChange={(e) => setNewItem({ ...newItem, productId: e.target.value })}
-            />
-          </td>
-          {allKeys.map((key) => (
-            <td key={key}>
-              <input
-                placeholder={key}
-                value={newItem.inventory[key] || ''}
-                onChange={(e) => handleNewItemChange(key, e.target.value)}
-              />
-            </td>
-          ))}
-          <td>
-            <button onClick={handleAddNew}>➕ Add</button>
-          </td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
-);
+        </tbody>
+      </table>
+    </div>
+  );
 };
 export default ProductInventory;

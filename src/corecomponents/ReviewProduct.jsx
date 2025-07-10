@@ -1,10 +1,36 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
-// Add a prop for all reviews and user info if needed
+// Simple StarRating component
+function StarRating({ value, onChange, label }) {
+    return (
+        <div style={{ marginBottom: 8 }}>
+            <span style={{ minWidth: 110, display: "inline-block" }}>{label}:</span>
+            {[1, 2, 3, 4, 5].map(star => (
+                <span
+                    key={star}
+                    style={{
+                        cursor: "pointer",
+                        color: star <= value ? "#FFD600" : "#ccc",
+                        fontSize: "1.5em"
+                    }}
+                    onClick={() => onChange(star)}
+                    data-testid={`star-${label}-${star}`}
+                >★</span>
+            ))}
+        </div>
+    );
+}
+
 export default function ReviewProduct({ order, allReviews = [], user }) {
-    const [rating, setRating] = useState(0);
-    const [review, setReview] = useState("");
+    const [ratings, setRatings] = useState({
+        taste: 0,
+        packaging: 0,
+        delivery: 0,
+        price: 0,
+        overall: 0,
+    });
+    const [comment, setComment] = useState("");
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
     const [userReviews, setUserReviews] = useState([]);
@@ -20,10 +46,14 @@ export default function ReviewProduct({ order, allReviews = [], user }) {
         }
     }, [allReviews, user, order]);
 
+    const handleRatingChange = (field, value) => {
+        setRatings(r => ({ ...r, [field]: value }));
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
-        if (!rating || !review.trim()) {
-            setError("Please provide a rating and review.");
+        if (!ratings.taste || !ratings.packaging || !ratings.delivery || !ratings.price || !ratings.overall || !comment.trim()) {
+            setError("Please provide ratings and a comment.");
             return;
         }
         setError("");
@@ -48,16 +78,14 @@ export default function ReviewProduct({ order, allReviews = [], user }) {
                     <div><strong>Date:</strong> {order.orderDate ? new Date(order.orderDate).toLocaleDateString("en-GB") : "-"}</div>
                     <div>
                         <strong>Items:</strong>
-                        <ul style={{ margin: 0, paddingLeft: 18 }}>
+                        <div style={{ margin: 0, paddingLeft: 18 }}>
                             {order.orderItems?.map((item, i) => (
-                                <li key={i}>
+                                <div key={i}>
                                     {item.count} {item.name} ({item.size || item.quantity || item.qty || "-"})
-                                </li>
+                                </div>
                             ))}
-                        </ul>
+                        </div>
                     </div>
-                    <div><strong>Delivery Mode:</strong> {order.deliveryMode || "-"}</div>
-                    <div><strong>Delivery Address:</strong> {order.deliveryAddress || "-"}</div>
                     <div><strong>Order Status:</strong> {order.status || "-"}</div>
                 </div>
             )}
@@ -66,43 +94,52 @@ export default function ReviewProduct({ order, allReviews = [], user }) {
             {userReviews.length > 0 && (
                 <div style={{ background: "#e9f7ef", border: "1px solid #b2dfdb", borderRadius: 6, padding: 12, marginBottom: 18 }}>
                     <strong>Your Previous Feedback:</strong>
-                    <ul style={{ margin: 0, paddingLeft: 18 }}>
+                    <div>
                         {userReviews.map((r, i) => (
-                            <li key={i}>
+                            <div key={i} style={{ marginBottom: 4 }}>
                                 <span style={{ color: "#ffc107" }}>{"★".repeat(r.rating)}</span>
                                 <span style={{ marginLeft: 8 }}>{r.review}</span>
-                            </li>
+                            </div>
                         ))}
-                    </ul>
+                    </div>
                 </div>
             )}
 
             {/* Feedback form */}
             <form onSubmit={handleSubmit} style={{ background: "#f8f9fa", borderRadius: 8, padding: 24, border: "1px solid #eee" }}>
                 <div className="mb-3">
-                    <label className="form-label" style={{ fontWeight: 500 }}>Your Rating:</label>
-                    <div>
-                        {[1, 2, 3, 4, 5].map(num => (
-                            <span
-                                key={num}
-                                style={{
-                                    cursor: "pointer",
-                                    color: num <= rating ? "#ffc107" : "#ccc",
-                                    fontSize: "2rem",
-                                    marginRight: 4
-                                }}
-                                onClick={() => setRating(num)}
-                                aria-label={`Rate ${num} star${num > 1 ? "s" : ""}`}
-                            >★</span>
-                        ))}
-                    </div>
+                    <StarRating
+                        label="Taste"
+                        value={ratings.taste}
+                        onChange={val => handleRatingChange("taste", val)}
+                    />
+                    <StarRating
+                        label="Packaging"
+                        value={ratings.packaging}
+                        onChange={val => handleRatingChange("packaging", val)}
+                    />
+                    <StarRating
+                        label="Delivery"
+                        value={ratings.delivery}
+                        onChange={val => handleRatingChange("delivery", val)}
+                    />
+                    <StarRating
+                        label="Price"
+                        value={ratings.price}
+                        onChange={val => handleRatingChange("price", val)}
+                    />
+                    <StarRating
+                        label="Overall Exp"
+                        value={ratings.overall}
+                        onChange={val => handleRatingChange("overall", val)}
+                    />
                 </div>
                 <div className="mb-3">
                     <textarea
                         className="form-control"
                         rows={4}
-                        value={review}
-                        onChange={e => setReview(e.target.value)}
+                        value={comment}
+                        onChange={e => setComment(e.target.value)}
                         placeholder="Share your experience..."
                         required
                     />

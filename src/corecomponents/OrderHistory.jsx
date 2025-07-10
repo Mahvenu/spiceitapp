@@ -269,19 +269,7 @@ export default function OrderHistory() {
                   Cancel Order
                 </a>
               )}
-              {canRate && (
-                <a
-                  href="#"
-                      style={{ color: "#007bff", textDecoration: "bold", cursor: "pointer", display: "inline-flex", alignItems: "center" }}
-                  onClick={e => {
-                    e.preventDefault();
-                    setReviewOrder(order);
-                    setActiveTab("review");
-                  }}
-                >
-                  <span style={{ color: "#ffc107", fontSize: "1.2em", marginRight: 4 }}>★</span> & Review
-                </a>
-              )}
+              
             </div>
         </tr>
         {/* Expanded details */}
@@ -320,6 +308,19 @@ export default function OrderHistory() {
                           <td>{item.count}</td>
                           <td>₹{item.unitPrice || item.price || "-"}</td>
                           <td>₹{(item.unitPrice || item.price) && item.count ? (item.unitPrice || item.price) * item.count : "-"}</td>
+                          {canRate && (
+                <a
+                  href="#"
+                      style={{ color: "#007bff", textDecoration: "bold", cursor: "pointer", display: "inline-flex", alignItems: "center" }}
+                  onClick={e => {
+                    e.preventDefault();
+                    setReviewOrder(order);
+                    setActiveTab("review");
+                  }}
+                >
+                  <span style={{ color: "#ffc107", fontSize: "1.2em", marginRight: 4 }}>★</span> & Review
+                </a>
+              )}
                         </tr>
                       ))}
                     </tbody>

@@ -2,7 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaTrash } from 'react-icons/fa'; // Add this import
 
-export default function ShoppingCart({ cart, products, handleRemoveFromCart }) {
+export default function ShoppingCart({ cart, products, onBack, handleRemoveFromCart }) {
   const navigate = useNavigate();
 
   // Prepare cart items with product details
@@ -45,7 +45,10 @@ export default function ShoppingCart({ cart, products, handleRemoveFromCart }) {
   return (
     <div style={{ padding: 20 }}>
       <h2>Your Shopping Cart</h2>
-      <table border="1" cellPadding="8" style={{ borderCollapse: 'collapse', width: '100%' }}>
+      <button className="btn btn-light btn-sm" onClick={onBack}>
+                        &larr; Back to Products
+                    </button>
+      <table border="0" cellPadding="8" style={{ borderCollapse: 'collapse', width: '100%' }}>
         <thead>
           <tr>
             <th>Product</th>

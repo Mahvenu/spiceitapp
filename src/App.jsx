@@ -16,10 +16,10 @@ import UserInfo from './corecomponents/UserInfo';
 import ReviewProduct from './corecomponents/ReviewProduct';
 import OrderManagement from './corecomponents/OrderManagement';
 import OrderHistory from './corecomponents/OrderHistory';
-import { FaShoppingCart } from "react-icons/fa";
+import { FaShoppingCart, FaUserCircle } from "react-icons/fa";
 import OverlayTrigger from 'react-bootstrap/OverlayTrigger';
 import Tooltip from 'react-bootstrap/Tooltip';
-
+import axios from "axios";
 
 // Move all logic that uses useNavigate into this inner component
 function AppContent() {
@@ -62,6 +62,18 @@ function AppContent() {
   useEffect(() => {
     sessionStorage.setItem("cart", JSON.stringify(cart));
   }, [cart]);
+
+  useEffect(() => {
+    localStorage.setItem("cart", JSON.stringify(cart));
+  }, [cart]);
+
+  // New effect to load cart from localStorage on app start
+  useEffect(() => {
+    const savedCart = localStorage.getItem("cart");
+    if (savedCart) {
+        setCart(JSON.parse(savedCart));
+    }
+}, []);
 
   const handleSignOut = () => {
     localStorage.removeItem("welcomeName");
@@ -120,7 +132,7 @@ function AppContent() {
   return (
     <div className='background'>
       {/* Logo above Navigation */}
-      <div className="app-logo-bar" style={{ width: "100%", padding: "12px 0 0 24px", background: "#fff" }}>
+      {/* <div className="app-logo-bar" style={{ width: "100%", padding: "12px 0 0 24px", background: "#fff" }}>
         <img
           src="images/logo.jpg"
           alt="Logo"
@@ -134,24 +146,49 @@ function AppContent() {
             padding: 4
           }}
         />
-      </div>
+      </div> */}
 
       {/* Navigation Bar */}
-      <nav>
-        <ul className="spice-horizontal-nav">
-          <li><Link to="/home">Home</Link></li>
-          <li><Link to="/productinventory">Product Inventory</Link></li>
-          <li><Link to="/aboutus">About Us</Link></li>
-          <li><Link to="/contactus">Contact Us</Link></li>
-          <li><Link to="/customermanagement">Customer Management</Link></li>
-          <li><Link to="/OrderManagement">Order Management</Link></li>
-          <li className="spice-horizontal-nav-right">
+      <nav
+  style={{
+    position: "fixed",
+    left: 0,
+    right: 0,
+    top: -5,
+    width: "100%",
+    minWidth: "100%",
+    margin: 0,
+    padding: 0,
+    background: "#fff",
+    boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
+    boxSizing: "border-box",
+    zIndex: 100,
+  }}
+>
+        <ul
+          className="spice-horizontal-nav"
+          style={{
+            width: "100%",
+            margin: 8,
+            padding: 0,
+            display: "flex",
+            flexWrap: "nowrap",
+            justifyContent: "center",
+            boxSizing: "border-box",
+          }}
+        >
+          <li style={{padding: 5}}><Link to="/home">Home</Link></li>
+          <li style={{padding: 5}}><Link to="/productinventory">Product Inventory</Link></li>
+          <li style={{padding: 5}}><Link to="/aboutus">About Us</Link></li>
+          <li style={{padding: 5}}><Link to="/customermanagement">Customer Management</Link></li>
+          <li style={{padding: 5}}><Link to="/OrderManagement">Order Management</Link></li>
+          {/* <li className="spice-horizontal-nav-right">
             <input
               type="text"
               placeholder="Search..."
               style={{ padding: "5px", borderRadius: "5px" }}
             />
-          </li>
+          </li> */}
           <li
             className="spice-horizontal-nav-right"
             style={{ position: "relative" }}
@@ -168,10 +205,8 @@ function AppContent() {
                 fontSize: ".95rem"
               }}
             >
+              <FaUserCircle style={{ fontSize: "1.2em", marginRight: 6, verticalAlign: "middle" }} />
               {firstName}
-              {firstName !== "Login" && (
-                <span style={{ marginLeft: 6, fontSize: "1.1em" }}></span>
-              )}
             </span>
             {showDropdown && (
               <div
@@ -184,13 +219,13 @@ function AppContent() {
                   borderRadius: "4px",
                   boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
                   zIndex: 1000,
-                  minWidth: "140px"
+                  minWidth: "140px",
                 }}
               >
                 {firstName !== "Login" ? (
                   <>
                     <div
-                      style={{ padding: "10px 16px", color: "#333", fontWeight: 500, cursor: "pointer" }}
+                      style={{ fontSize: ".8em", padding: "10px 16px", color: "#333", fontWeight: 500, cursor: "pointer" }}
                       onClick={() => {
                         setShowDropdown(false);
                         navigate("/userinfo");
@@ -199,13 +234,22 @@ function AppContent() {
                       User Info
                     </div>
                     <div
-                      style={{ padding: "10px 16px", color: "#333", fontWeight: 500, cursor: "pointer" }}
+                      style={{ fontSize: ".8em",padding: "10px 16px", color: "#333", fontWeight: 500, cursor: "pointer" }}
                       onClick={() => {
                         setShowDropdown(false);
                         navigate("/OrderHistory");
                       }}
                     >
                       My Orders
+                    </div>
+                    <div
+                      style={{ fontSize: ".8em",padding: "10px 16px", color: "#333", fontWeight: 500, cursor: "pointer" }}
+                      onClick={() => {
+                        setShowDropdown(false);
+                        navigate("/contactus");
+                      }}
+                    >
+                      Contact Us
                     </div>
                     <div style={{ borderTop: "1px solid #eee" }} />
                     <button
@@ -217,27 +261,38 @@ function AppContent() {
                         border: "none",
                         color: "#333",
                         cursor: "pointer",
-                        fontSize: "1rem"
+                        fontSize: ".8rem"
                       }}
                     >
                       Sign Out
                     </button>
                   </>
                 ) : (
-                  <Link
-                    to="/signin"
-                    style={{
-                      display: "block",
-                      padding: "10px 16px",
-                      color: "#007bff",
-                      fontWeight: 500,
-                      fontSize: "1rem",
-                      textDecoration: "none"
-                    }}
-                    onClick={() => setShowDropdown(false)}
-                  >
-                    User Login
-                  </Link>
+                  <>
+                    <Link
+                      to="/signin"
+                      style={{
+                        display: "block",
+                        padding: "10px 16px",
+                        color: "#007bff",
+                        fontWeight: 500,
+                        fontSize: "1rem",
+                        textDecoration: "none"
+                      }}
+                      onClick={() => setShowDropdown(false)}
+                    >
+                      User Login
+                    </Link>
+                    <div
+                      style={{ padding: "10px 16px", color: "#333", fontWeight: 500, cursor: "pointer" }}
+                      onClick={() => {
+                        setShowDropdown(false);
+                        navigate("/contactus");
+                      }}
+                    >
+                      Contact Us
+                    </div>
+                  </>
                 )}
               </div>
             )}
@@ -278,14 +333,14 @@ function AppContent() {
       </nav>
 
       {/* Banner below Navigation */}
-      <div className="app-banner-container">
+      {/* <div className="app-banner-container" style={{minWidth: "100%",width:"100%"} }>
         <img
           src="images/banner.jpg"
           alt="Banner"
           className="app-banner-img"
         />
-      </div>
-
+      </div> */}
+      <SlidingBanner />
       {/* Main Content */}
       <Routes>
         <Route path="/" element={
@@ -324,12 +379,79 @@ function AppContent() {
         <Route path="/userinfo" element={<UserInfo />} />
         <Route path="/ReviewProduct" element={<ReviewProduct />} />
         <Route path="/OrderHistory" element={<OrderHistory />} />
+        <Route path="/OrderManagement" element={<OrderManagement />} />
       </Routes>
       <footer>
         <p>
           © Product Of VJkamps!
         </p>
       </footer>
+    </div>
+  );
+}
+
+function SlidingBanner() {
+  const images = [
+    "/images/banner.jpg",
+    "/images/banner2.jpg",
+    "/images/banner3.jpg"
+    // Add more image paths as needed
+  ];
+  const [current, setCurrent] = useState(0);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrent(prev => (prev + 1) % images.length);
+    }, 3500); // Change slide every 3.5 seconds
+    return () => clearInterval(timer);
+  }, [images.length]);
+
+  return (
+    <div className="app-banner-container" style={{ minWidth: "100%", width: "100%", overflow: "hidden", position: "relative", height: 220 }}>
+      {images.map((img, idx) => (
+        <img
+          key={img}
+          src={img}
+          alt={`Banner ${idx + 1}`}
+          className="app-banner-img"
+          style={{
+            width: "95%",
+            height: 500,
+            maxHeight: 150,
+            objectFit: "cover",
+            position: "absolute",
+            left: 0,
+            top: 0,
+            opacity: idx === current ? 1 : 0,
+            transition: "opacity 0.8s"
+          }}
+        />
+      ))}
+      {/* Dots for navigation */}
+      <div style={{
+        position: "absolute",
+        bottom: 12,
+        left: "50%",
+        transform: "translateX(-50%)",
+        display: "flex",
+        gap: 8
+      }}>
+        {images.map((_, idx) => (
+          <span
+            key={idx}
+            style={{
+              width: 12,
+              height: 12,
+              borderRadius: "50%",
+              background: idx === current ? "#FFD600" : "#fff",
+              border: "1px solid #FFD600",
+              display: "inline-block",
+              cursor: "pointer"
+            }}
+            onClick={() => setCurrent(idx)}
+          />
+        ))}
+      </div>
     </div>
   );
 }
