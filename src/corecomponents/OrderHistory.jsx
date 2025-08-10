@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import ReviewProduct from "./ReviewProduct";
+import ReviewHistory from "./ReviewHistory";
 
 export default function OrderHistory() {
     
@@ -315,6 +316,8 @@ export default function OrderHistory() {
                   onClick={e => {
                     e.preventDefault();
                     setReviewOrder(order);
+                    // Pass product as well as order to ReviewProduct
+                    navigate("/ReviewProduct", { state: { order, product: item } });
                     setActiveTab("review");
                   }}
                 >
@@ -341,7 +344,7 @@ export default function OrderHistory() {
                     )}
                     {activeTab === "review" && (
                         <div>
-                            <ReviewProduct order={reviewOrder} />
+                            <ReviewHistory/>
                         </div>
                     )}
                     {error && !showForm && !showOrders && (

@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
-import { useLocation } from "react-router-dom";
-import ReviewProduct from "./ReviewProduct";
+import { useNavigate, useLocation } from "react-router-dom";
+import ReviewHistory from "./ReviewHistory";
 
 export default function UserInfo() {
+    const navigate = useNavigate();
     const location = useLocation();
     // Check for navigation state to set initial tab
     const initialTab = location.state?.tab || "details";
@@ -239,7 +240,10 @@ export default function UserInfo() {
                             fontWeight: activeTab === "review" ? 600 : 500,
                             color: "#333"
                         }}
-                        onClick={() => handleTabClick("review")}
+                        onClick={() => {
+                            // Instead of setActiveTab("review"), redirect:
+                            navigate("/ReviewHistory");
+                        }}
                     >
                         Review Order
                     </div>
@@ -499,11 +503,6 @@ export default function UserInfo() {
                                     </tbody>
                                 </table>
                             )}
-                        </div>
-                    )}
-                    {activeTab === "review" && (
-                        <div>
-                            <ReviewProduct order={reviewOrder} />
                         </div>
                     )}
                     {error && !showForm && !showOrders && (

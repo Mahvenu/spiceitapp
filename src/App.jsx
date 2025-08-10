@@ -15,7 +15,9 @@ import SignIn from './corecomponents/Signin';
 import UserInfo from './corecomponents/UserInfo';
 import ReviewProduct from './corecomponents/ReviewProduct';
 import OrderManagement from './corecomponents/OrderManagement';
+import ReviewManagement from './corecomponents/ReviewManagement';
 import OrderHistory from './corecomponents/OrderHistory';
+import ReviewHistory from "./corecomponents/ReviewHistory";
 import { FaShoppingCart, FaUserCircle } from "react-icons/fa";
 import OverlayTrigger from 'react-bootstrap/OverlayTrigger';
 import Tooltip from 'react-bootstrap/Tooltip';
@@ -182,6 +184,7 @@ function AppContent() {
           <li style={{padding: 5}}><Link to="/aboutus">About Us</Link></li>
           <li style={{padding: 5}}><Link to="/customermanagement">Customer Management</Link></li>
           <li style={{padding: 5}}><Link to="/OrderManagement">Order Management</Link></li>
+          <li style={{padding: 5}}><Link to="/ReviewManagement">Review Management</Link></li>
           {/* <li className="spice-horizontal-nav-right">
             <input
               type="text"
@@ -315,7 +318,7 @@ function AppContent() {
                 {totalCartCount > 0 && (
                   <span style={{
                     position: "absolute",
-                    top: "-8px",
+                    top: "-3px",
                     right: "-8px",
                     background: "red",
                     color: "white",
@@ -380,6 +383,7 @@ function AppContent() {
         <Route path="/ReviewProduct" element={<ReviewProduct />} />
         <Route path="/OrderHistory" element={<OrderHistory />} />
         <Route path="/OrderManagement" element={<OrderManagement />} />
+        <Route path="/ReviewHistory" element={<ReviewHistory />} />
       </Routes>
       <footer>
         <p>
@@ -407,7 +411,7 @@ function SlidingBanner() {
   }, [images.length]);
 
   return (
-    <div className="app-banner-container" style={{ minWidth: "100%", width: "100%", overflow: "hidden", position: "relative", height: 220 }}>
+    <div className="app-banner-container" style={{ minWidth: "95%", width: "80%", overflow: "hidden", position: "relative", height: 220 }}>
       {images.map((img, idx) => (
         <img
           key={img}
@@ -420,7 +424,7 @@ function SlidingBanner() {
             maxHeight: 150,
             objectFit: "cover",
             position: "absolute",
-            left: 0,
+            left: 56,
             top: 0,
             opacity: idx === current ? 1 : 0,
             transition: "opacity 0.8s"

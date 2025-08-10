@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 
 // Simple StarRating component
 function StarRating({ value, onChange, label }) {
@@ -22,7 +22,7 @@ function StarRating({ value, onChange, label }) {
     );
 }
 
-export default function ReviewProduct({ order, allReviews = [], user }) {
+export default function ReviewProduct({ allReviews = [], user }) {
     const [ratings, setRatings] = useState({
         taste: 0,
         packaging: 0,
@@ -35,20 +35,51 @@ export default function ReviewProduct({ order, allReviews = [], user }) {
     const [success, setSuccess] = useState("");
     const [userReviews, setUserReviews] = useState([]);
     const navigate = useNavigate();
+    const location = useLocation();
+
+    // Get order and product from navigation state (clicked item)
+    const order = location.state?.order;
+    const product = location.state?.product;
+console.log("ReviewProduct order:", order);
+    console.log("ReviewProduct product:", product);
+    // If product or order is missing, show a message and do not render the form
+    if (!order || !product) {
+        return (
+            <div className="container my-5" style={{ maxWidth: 700 }}>
+                <h2 className="mb-4"><span>Rate</span> & Review</h2>
+                <div className="alert alert-warning">
+                    No product or order selected for review. Please go to your order history and click "Rate & Review" for a specific item.
+                </div>
+            </div>
+        );
+    }
 
     useEffect(() => {
-        // Filter reviews for this user and order if allReviews and user are provided
+        // Filter reviews for this user, order, and product if allReviews and user are provided
         if (allReviews && user) {
-            const filtered = allReviews.filter(
-                r => r.userId === user.id && (!order || r.orderId === (order.orderId || order.id))
-            );
+            let filtered = allReviews.filter(r => r.userId === user.id);
+            if (order) filtered = filtered.filter(r => r.orderId === (order.orderId || order.id));
+            if (product) filtered = filtered.filter(r => r.productId === product.productId);
             setUserReviews(filtered);
         }
-    }, [allReviews, user, order]);
+    }, [allReviews, user, order, product]);
 
     const handleRatingChange = (field, value) => {
         setRatings(r => ({ ...r, [field]: value }));
     };
+
+    function getDateTimeString() {
+        const now = new Date();
+        const pad = n => n.toString().padStart(2, "0");
+        return (
+            pad(now.getDate()) +
+            pad(now.getMonth() + 1) +
+            now.getFullYear().toString().slice(-2) +
+            pad(now.getHours()) +
+            pad(now.getMinutes()) +
+            pad(now.getSeconds())
+        );
+    }
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -57,12 +88,41 @@ export default function ReviewProduct({ order, allReviews = [], user }) {
             return;
         }
         setError("");
+        setSuccess("");
         try {
-            // await fetch("/api/saveReview", { ... });
+            const dtStr = getDateTimeString();
+            const reviewId = `reviewId_${product.productId}_${order.phoneNumber}_${dtStr}`;
+            const timestamp = `timestamp_${dtStr}`;
+            const body = {
+                productId: product.productId,
+                reviewId,
+                userId: order.phoneNumber,
+                reviewText: comment,
+                rating: {
+                    taste: ratings.taste,
+                    packaging: ratings.packaging,
+                    delivery: ratings.delivery,
+                    price: ratings.price,
+                    overall: ratings.overall
+                },
+                orderId: order.orderId || order.id,
+                timestamp
+            };
+            console.log("Review body:", body);
+            const res = await fetch("https://f9x0pi0l37.execute-api.ap-south-1.amazonaws.com/dev/saveReview?service=saveReview", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(body)
+            });
+            console.log("Review API status:", res.status);
+            const resText = await res.text();
+            console.log("Review API response:", resText);
+            if (!res.ok) throw new Error("Failed to submit review");
             setSuccess("Thank you for your feedback!");
             setTimeout(() => navigate("/userinfo"), 1500);
-        } catch {
+        } catch (err) {
             setError("Failed to submit review. Please try again.");
+            console.error(err);
         }
     };
 
@@ -71,26 +131,18 @@ export default function ReviewProduct({ order, allReviews = [], user }) {
             <h2 className="mb-4">
                 <span>Rate</span> & Review
             </h2>
-            {/* Show all order details for the selected order */}
-            {order && (
-                <div style={{ background: "#f8f9fa", border: "1px solid", borderRadius: 6, padding: 12, marginBottom: 18 }}>
-                    <div><strong>Order ID:</strong> {order.orderId || order.id}</div>
-                    <div><strong>Date:</strong> {order.orderDate ? new Date(order.orderDate).toLocaleDateString("en-GB") : "-"}</div>
-                    <div>
-                        <strong>Items:</strong>
-                        <div style={{ margin: 0, paddingLeft: 18 }}>
-                            {order.orderItems?.map((item, i) => (
-                                <div key={i}>
-                                    {item.count} {item.name} ({item.size || item.quantity || item.qty || "-"})
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                    <div><strong>Order Status:</strong> {order.status || "-"}</div>
+            {/* Show only the selected product item details for the order */}
+            <div style={{ background: "#f8f9fa", border: "1px solid", borderRadius: 6, padding: 12, marginBottom: 18 }}>
+                <div><strong>Order ID:</strong> {order.orderId || order.id}</div>
+                <div><strong>Date:</strong> {order.orderDate ? new Date(order.orderDate).toLocaleDateString("en-GB") : "-"}</div>
+                <div>
+                    <strong>Item:</strong> {product.count} {product.name} ({product.size || product.quantity || product.qty || "-"})
                 </div>
-            )}
+                <div><strong>Order Status:</strong> {order.status || "-"}</div>
+                <div><strong>Product ID:</strong> {product.productId}</div>
+            </div>
 
-            {/* Show previous feedback for this order by the signed-in user */}
+            {/* Show previous feedback for this order and product by the signed-in user */}
             {userReviews.length > 0 && (
                 <div style={{ background: "#e9f7ef", border: "1px solid #b2dfdb", borderRadius: 6, padding: 12, marginBottom: 18 }}>
                     <strong>Your Previous Feedback:</strong>
@@ -108,31 +160,11 @@ export default function ReviewProduct({ order, allReviews = [], user }) {
             {/* Feedback form */}
             <form onSubmit={handleSubmit} style={{ background: "#f8f9fa", borderRadius: 8, padding: 24, border: "1px solid #eee" }}>
                 <div className="mb-3">
-                    <StarRating
-                        label="Taste"
-                        value={ratings.taste}
-                        onChange={val => handleRatingChange("taste", val)}
-                    />
-                    <StarRating
-                        label="Packaging"
-                        value={ratings.packaging}
-                        onChange={val => handleRatingChange("packaging", val)}
-                    />
-                    <StarRating
-                        label="Delivery"
-                        value={ratings.delivery}
-                        onChange={val => handleRatingChange("delivery", val)}
-                    />
-                    <StarRating
-                        label="Price"
-                        value={ratings.price}
-                        onChange={val => handleRatingChange("price", val)}
-                    />
-                    <StarRating
-                        label="Overall Exp"
-                        value={ratings.overall}
-                        onChange={val => handleRatingChange("overall", val)}
-                    />
+                    <StarRating label="Taste" value={ratings.taste} onChange={val => handleRatingChange("taste", val)} />
+                    <StarRating label="Packaging" value={ratings.packaging} onChange={val => handleRatingChange("packaging", val)} />
+                    <StarRating label="Delivery" value={ratings.delivery} onChange={val => handleRatingChange("delivery", val)} />
+                    <StarRating label="Price" value={ratings.price} onChange={val => handleRatingChange("price", val)} />
+                    <StarRating label="Overall Exp" value={ratings.overall} onChange={val => handleRatingChange("overall", val)} />
                 </div>
                 <div className="mb-3">
                     <textarea

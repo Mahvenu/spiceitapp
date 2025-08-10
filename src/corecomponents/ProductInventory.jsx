@@ -65,9 +65,9 @@ const ProductInventory = () => {
     })
       .then((res) => res.json())
       .then(() => {
-        setPromptMsg('Saved successfully');
+        setPromptMsg(isNew ? 'Added successfully!' : 'Updated successfully!');
         setTimeout(() => setShowPrompt(false), 1200);
-        setReloadFlag(flag => !flag); // <-- Only reload inventory data, not the whole page
+        setReloadFlag(flag => !flag);
         if (isNew) {
           setNewItem({ productId: '', inventory: {} });
         }
